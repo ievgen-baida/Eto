@@ -378,6 +378,8 @@ namespace Eto.CustomControls
 		{
 			get
 			{
+				if (Store == null)
+					return 0;
 				if (countCache != null)
 					return countCache.Value;
 				if (sections != null)
