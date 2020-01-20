@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	
+  <PropertyGroup>
+    <TargetFramework>netstandard1.6</TargetFramework>
+    <RootNamespace>TestEtoApp</RootNamespace>
+    <PackageVersion>1.0</PackageVersion>
+    <Title>TestEtoApp</Title>
+    <Copyright>Copyright © 2019</Copyright>
+    <Description>Description of TestEtoApp</Description>
+  </PropertyGroup>
+	
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Eto\Eto.csproj" />
+  </ItemGroup>
+  
+</Project>
