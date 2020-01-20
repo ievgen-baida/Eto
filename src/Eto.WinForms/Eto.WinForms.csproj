@@ -70,6 +70,7 @@
       <Link>Drawing\GradientHelper.cs</Link>
     </Compile>
     <Compile Include="BubbleEventFilter.cs" />
+    <Compile Include="CustomControls\TreeControllerStore.cs" />
     <Compile Include="Drawing\RadialGradientBrushHandler.cs" />
     <Compile Include="Drawing\SystemColorsHandler.cs" />
     <Compile Include="Forms\Cells\CustomCellHandler.cs" />

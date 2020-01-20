@@ -68,6 +68,9 @@
     <Compile Include="..\Eto.WinForms\CustomControls\TreeController.cs">
       <Link>CustomControls\TreeGridView\TreeController.cs</Link>
     </Compile>
+    <Compile Include="..\Eto.WinForms\CustomControls\TreeControllerStore.cs">
+      <Link>CustomControls\TreeGridView\TreeControllerStore.cs</Link>
+    </Compile>
     <Compile Include="..\Eto.WinForms\KeyMap.cs">
       <Link>WinForms\KeyMap.cs</Link>
     </Compile>

@@ -34,7 +34,7 @@ namespace Eto.WinForms.Forms.Controls
 
 		public TreeGridViewHandler()
 		{
-			controller = new TreeController { Handler = this };
+			controller = new TreeControllerStore { Handler = this };
 			controller.CollectionChanged += (sender, e) => UpdateCollection();
 		}
 

@@ -47,7 +47,7 @@ namespace TestEtoApp
         {
             var item = CreateItem(888);
             ((TreeGridItem)treeItems.Last()).Children.Add(item);
-            ((TreeGridItem) treeItems.Last()).Expanded = true;
+            //((TreeGridItem) treeItems.Last()).Expanded = true;
             //treeControl.ReloadItem(item);
             //treeControl.ReloadData();
         }
@@ -79,10 +79,10 @@ namespace TestEtoApp
 
         private static TreeGridItem CreateItem(int i)
         {
-            var item = new TreeGridItem(new object[] { null, $"Item{i}" })
-            {
-                Expanded = true
-            };
+            var item = new TreeGridItem(new object[] {null, $"Item{i}"});
+            //{
+            //    Expanded = true
+            //};
             //for (var j = 0; j < 3; j++)
             //{
             //    var childItem = new TreeGridItem(null, $"Item{i}_{j}");

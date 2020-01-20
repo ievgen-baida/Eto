@@ -14,7 +14,7 @@ namespace Eto.Wpf.Forms.Controls
 {
 	public class TreeGridViewHandler : GridHandler<TreeGridView, TreeGridView.ICallback>, TreeGridView.IHandler, ITreeHandler
 	{
-		TreeController controller;
+		TreeControllerStore controller;
 		ITreeGridItem lastSelected;
 
 		protected override object GetItemAtRow(int row)
@@ -25,7 +25,7 @@ namespace Eto.Wpf.Forms.Controls
 		protected override void Initialize()
 		{
 			base.Initialize();
-			controller = new TreeController { Handler = this };
+			controller = new TreeControllerStore { Handler = this };
 			Control.Background = sw.SystemColors.WindowBrush;
 		}
 
