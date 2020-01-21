@@ -54,7 +54,8 @@ namespace TestEtoApp
 
         private void Remove(object sender, EventArgs e)
         {
-            treeItems.RemoveAt(5);
+            if (treeItems.Any())
+                treeItems.RemoveAt(treeItems.Count - 1);
             //treeControl.ReloadData();
         }
 
