@@ -20,7 +20,8 @@ namespace Eto.CustomControls
 				case NotifyCollectionChangedAction.Add:
 					foreach (var newItem in e.NewItems.Cast<ITreeGridItem>())
 					{
-						var row = e.NewStartingIndex; //.((TreeGridItemCollection)store).IndexOf(newItem); // TODO calculate using sections
+						var row = IndexOf(newItem);
+						//var row = e.NewStartingIndex; //.((TreeGridItemCollection)store).IndexOf(newItem); // TODO calculate using sections
 						if (row < 0)
 							return;
 						OnTriggerCollectionChanged(
