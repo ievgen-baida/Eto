@@ -12,7 +12,7 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 	{
 		public const int LevelWidth = 16;
 
-		public TreeController Controller { get; set; }
+		public TreeControllerStore Controller { get; set; }
 
 		public ITreeGridItem Item { get; private set; }
 
@@ -21,7 +21,7 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 			DefaultStyleKeyProperty.OverrideMetadata (typeof (TreeToggleButton), new FrameworkPropertyMetadata (typeof (TreeToggleButton)));
 		}
 
-		public static FrameworkElement Create (FrameworkElement content, TreeController controller)
+		public static FrameworkElement Create (FrameworkElement content, TreeControllerStore controller)
 		{
 			var dock = new DockPanel();
 			var button = new TreeToggleButton { Controller = controller, Width = 16 };

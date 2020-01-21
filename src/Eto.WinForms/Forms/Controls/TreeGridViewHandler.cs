@@ -23,7 +23,7 @@ namespace Eto.WinForms.Forms.Controls
 
 		public bool ClassicGridLines { get; set; }
 
-		TreeController controller;
+		TreeControllerStore controller;
 
 		protected override object GetItemAtRow(int row)
 		{
@@ -34,7 +34,7 @@ namespace Eto.WinForms.Forms.Controls
 
 		public TreeGridViewHandler()
 		{
-			controller = new TreeControllerStore { Handler = this };
+			controller = new TreeControllerStore(this);
 			controller.CollectionChanged += (sender, e) => UpdateCollection();
 		}
 

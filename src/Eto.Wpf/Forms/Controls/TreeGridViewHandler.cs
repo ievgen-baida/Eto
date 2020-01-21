@@ -25,7 +25,7 @@ namespace Eto.Wpf.Forms.Controls
 		protected override void Initialize()
 		{
 			base.Initialize();
-			controller = new TreeControllerStore { Handler = this };
+			controller = new TreeControllerStore(this);
 			Control.Background = sw.SystemColors.WindowBrush;
 		}
 
@@ -98,7 +98,7 @@ namespace Eto.Wpf.Forms.Controls
 
 		public ITreeGridStore<ITreeGridItem> DataStore
 		{
-			get { return controller.Store; }
+			get { return controller; }
 			set
 			{
 				controller.InitializeItems(value);

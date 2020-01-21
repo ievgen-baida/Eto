@@ -1,18 +1,26 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using Eto.Forms;
 
 namespace Eto.CustomControls
 {
-	public class TreeControllerStore : TreeController, IList
+	public class TreeControllerStore : ITreeGridStore<ITreeGridItem>, INotifyCollectionChanged, IList
 	{
-		public TreeControllerStore()
+		internal Dictionary<int, ITreeGridItem> Cache { get; } = new Dictionary<int, ITreeGridItem>();
+
+		public TreeControllerStore(ITreeHandler handler)
 		{
-			RootTreeController = this;
+			Handler = handler;
+			RootTreeController = new TreeController(this) { Handler = handler };
 		}
-		
+
+		ITreeHandler Handler { get; }
+
+		TreeController RootTreeController { get; }
+
 		internal void OnStoreCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
 		{
 			switch (e.Action)
@@ -55,25 +63,59 @@ namespace Eto.CustomControls
 		public event EventHandler<TreeGridViewItemEventArgs> Collapsed;
 
 		// TODO access modifier
-		internal virtual void OnExpanding(TreeGridViewItemCancelEventArgs e)
+		internal void OnExpanding(TreeGridViewItemCancelEventArgs e)
 		{
 			if (Expanding != null) Expanding(this, e);
 		}
 
-		internal virtual void OnCollapsing(TreeGridViewItemCancelEventArgs e)
+		internal void OnCollapsing(TreeGridViewItemCancelEventArgs e)
 		{
 			if (Collapsing != null) Collapsing(this, e);
 		}
 
-		internal virtual void OnExpanded(TreeGridViewItemEventArgs e)
+		internal void OnExpanded(TreeGridViewItemEventArgs e)
 		{
 			if (Expanded != null) Expanded(this, e);
 		}
 
-		internal virtual void OnCollapsed(TreeGridViewItemEventArgs e)
+		internal void OnCollapsed(TreeGridViewItemEventArgs e)
 		{
 			if (Collapsed != null) Collapsed(this, e);
 		}
+
+
+		#region NotifyColllectionChanged implementation
+
+		public event NotifyCollectionChangedEventHandler CollectionChanged;
+
+		protected virtual void OnTriggerCollectionChanged(NotifyCollectionChangedEventArgs args) => CollectionChanged?.Invoke(this, args);
+
+		#endregion
+
+
+		#region ITreeGridStore<ITreeGridItem> implementation
+
+		public ITreeGridItem this[int row]
+		{
+			get
+			{
+				ITreeGridItem item;
+				if (!Cache.TryGetValue(row, out item))
+				{
+					item = RootTreeController.GetItemAtRow(row);
+					if (item != null)
+						Cache[row] = item;
+				}
+				return item;
+			}
+		}
+
+		public int Count => RootTreeController.Count;
+
+		#endregion
+
+
+		#region IList implementation
 
 		object IList.this[int index]
 		{
@@ -98,9 +140,9 @@ namespace Eto.CustomControls
 			return true;
 		}
 
-		int IList.IndexOf(object value)
+		public int IndexOf(object value)
 		{
-			return IndexOf(value as ITreeGridItem);
+			return RootTreeController.IndexOf(value as ITreeGridItem);
 		}
 
 		public void Insert(int index, object value)
@@ -110,7 +152,7 @@ namespace Eto.CustomControls
 
 		public bool IsFixedSize
 		{
-			get { return true; }
+			get { return false; }
 		}
 
 		public bool IsReadOnly
@@ -147,8 +189,35 @@ namespace Eto.CustomControls
 		{
 			for (int i = 0; i < Count; i++)
 			{
-				yield return this[i];
+				yield return RootTreeController[i];
 			}
 		}
+
+		#endregion
+
+
+		#region Facade methods
+
+		public void InitializeItems(ITreeGridStore<ITreeGridItem> value)
+		{
+			RootTreeController.InitializeItems(value);
+			RootTreeController.CollectionChanged += OnStoreCollectionChanged;
+		}
+
+		public TreeController.TreeNode GetNodeAtRow(int row) => RootTreeController.GetNodeAtRow(row);
+
+		public void ExpandToItem(ITreeGridItem value) => RootTreeController.ExpandToItem(value);
+
+		public void ReloadData() => RootTreeController.ReloadData();
+
+		public int LevelAtRow(int row) => RootTreeController.LevelAtRow(row);
+
+		public bool CollapseRow(int row) => RootTreeController.CollapseRow(row);
+
+		public bool IsExpanded(int row) => RootTreeController.IsExpanded(row);
+
+		public bool ExpandRow(int row) => RootTreeController.ExpandRow(row);
+
+		#endregion
 	}
 }
