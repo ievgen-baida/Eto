@@ -17,7 +17,7 @@ namespace Eto.CustomControls
 		void PostResetTree ();
 	}
 
-	public class TreeController : ITreeGridStore<ITreeGridItem>, IList, INotifyCollectionChanged
+	public class TreeController : ITreeGridStore<ITreeGridItem>, INotifyCollectionChanged
 	{
 		readonly Dictionary<int, ITreeGridItem> cache = new Dictionary<int, ITreeGridItem> ();
 		int? countCache;
@@ -128,31 +128,6 @@ namespace Eto.CustomControls
 
 		public ITreeHandler Handler { get; set; }
 
-		public event EventHandler<TreeGridViewItemCancelEventArgs> Expanding;
-		public event EventHandler<TreeGridViewItemCancelEventArgs> Collapsing;
-		public event EventHandler<TreeGridViewItemEventArgs> Expanded;
-		public event EventHandler<TreeGridViewItemEventArgs> Collapsed;
-
-		protected virtual void OnExpanding (TreeGridViewItemCancelEventArgs e)
-		{
-			if (Expanding != null) Expanding (this, e);
-		}
-
-		protected virtual void OnCollapsing (TreeGridViewItemCancelEventArgs e)
-		{
-			if (Collapsing != null) Collapsing (this, e);
-		}
-
-		protected virtual void OnExpanded (TreeGridViewItemEventArgs e)
-		{
-			if (Expanded != null) Expanded (this, e);
-		}
-
-		protected virtual void OnCollapsed (TreeGridViewItemEventArgs e)
-		{
-			if (Collapsed != null) Collapsed (this, e);
-		}
-
 		public void InitializeItems (ITreeGridStore<ITreeGridItem> store)
 		{
 			ClearCache ();
@@ -169,10 +144,12 @@ namespace Eto.CustomControls
 			foreach (var treeController in Sections)
 			{
 				treeController.CollectionChanged -= OnStoreCollectionChanged;
-				foreach (var childTreeGridItem in treeController)
+				for (int i = 0; i < treeController.Count; i++)
 				{
+					var childTreeGridItem = treeController[i];
+
 					if (childTreeGridItem is TreeGridItem treeGridItem/* && treeGridItem.Count > 0*/)
-						treeGridItem.Children.CollectionChanged += OnChildrenCollectionChanged;
+						treeGridItem.Children.CollectionChanged -= OnChildrenCollectionChanged;
 				}
 			}
 			Sections.Clear();
@@ -306,7 +283,6 @@ namespace Eto.CustomControls
 			return node;
 		}
 
-
 		ITreeGridItem GetItemAtRow (int row)
 		{
 			if (Store == null) return null;
@@ -358,12 +334,12 @@ namespace Eto.CustomControls
 		public bool ExpandRow (int row)
 		{
 			var args = new TreeGridViewItemCancelEventArgs(GetItemAtRow(row));
-			OnExpanding (args);
+			RootTreeController.OnExpanding(args);
 			if (args.Cancel)
 				return false;
 			args.Item.Expanded = true;
 			ExpandRowInternal (row);
-			OnExpanded (new TreeGridViewItemEventArgs (args.Item));
+			RootTreeController.OnExpanded(new TreeGridViewItemEventArgs(args.Item));
 			return true;
 		}
 
@@ -444,12 +420,12 @@ namespace Eto.CustomControls
 		public bool CollapseRow (int row)
 		{
 			var args = new TreeGridViewItemCancelEventArgs (GetItemAtRow (row));
-			OnCollapsing (args);
+			RootTreeController.OnCollapsing(args);
 			if (args.Cancel)
 				return false;
 			var shouldSelect = !Handler.AllowMultipleSelection && ChildIsSelected (args.Item);
 			args.Item.Expanded = false;
-			OnCollapsed (new TreeGridViewItemEventArgs (args.Item));
+			RootTreeController.OnCollapsed(new TreeGridViewItemEventArgs(args.Item));
 			CollapseSection (row);
 
 			ResetCollection ();
@@ -505,81 +481,6 @@ namespace Eto.CustomControls
 				else
 					countCache = Store.Count;
 				return countCache.Value;
-			}
-		}
-
-		public int Add (object value)
-		{
-			return 0;
-		}
-
-		public void Clear ()
-		{
-		}
-
-		public bool Contains (object value)
-		{
-			return true;
-		}
-
-		int IList.IndexOf (object value)
-		{
-			return IndexOf (value as ITreeGridItem);
-		}
-
-		public void Insert (int index, object value)
-		{
-			
-		}
-
-		public bool IsFixedSize
-		{
-			get { return true; }
-		}
-
-		public bool IsReadOnly
-		{
-			get { return false; }
-		}
-
-		public void Remove (object value)
-		{
-			
-		}
-
-		public void RemoveAt (int index)
-		{
-			
-		}
-
-		object IList.this[int index]
-		{
-			get { return this[index]; }
-			set
-			{
-				
-			}
-		}
-
-		public void CopyTo (Array array, int index)
-		{
-			throw new NotImplementedException ();
-		}
-
-		public bool IsSynchronized
-		{
-			get { return false; }
-		}
-
-		public object SyncRoot
-		{
-			get { return this; }
-		}
-
-		public IEnumerator GetEnumerator ()
-		{
-			for (int i = 0; i < Count; i++) {
-				yield return this[i];
 			}
 		}
 
