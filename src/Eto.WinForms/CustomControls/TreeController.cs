@@ -74,7 +74,13 @@ namespace Eto.CustomControls
 			switch (e.Action)
 			{
 				case NotifyCollectionChangedAction.Add:
+					foreach (var newItem in e.NewItems.Cast<TreeGridItem>()) 
+						newItem.Children.CollectionChanged += OnChildrenCollectionChanged;
+					ClearCache();
+					break;
 				case NotifyCollectionChangedAction.Remove:
+					foreach (var oldItem in e.OldItems.Cast<TreeGridItem>()) 
+						oldItem.Children.CollectionChanged -= OnChildrenCollectionChanged;
 					ClearCache();
 					break;
 				case NotifyCollectionChangedAction.Reset:
