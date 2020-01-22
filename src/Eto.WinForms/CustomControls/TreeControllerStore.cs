@@ -49,7 +49,7 @@ namespace Eto.CustomControls
 				case NotifyCollectionChangedAction.Reset:
 					break;
 				case NotifyCollectionChangedAction.Replace:
-				//break;
+					break;
 				case NotifyCollectionChangedAction.Move:
 				//break;
 				default:

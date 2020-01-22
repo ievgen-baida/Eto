@@ -81,7 +81,7 @@ namespace Eto.CustomControls
 					ResetCollection();
 					break;
 				case NotifyCollectionChangedAction.Replace:
-					//break;
+					break;
 				case NotifyCollectionChangedAction.Move:
 					//break;
 				default:
@@ -362,10 +362,8 @@ namespace Eto.CustomControls
 		void NotifySectionExpanded(TreeController childController)
 		{
 			var parentRow = childController.StartRow;
-			var childIndex = childController.Store.Count - 1;
-			var childRow = parentRow + childIndex;
 			var firstChildRow = parentRow + 1;
-			OnStoreCollectionChanged(RootTreeController, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, this[parentRow], parentRow));
+			OnStoreCollectionChanged(RootTreeController, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, this[parentRow], this[parentRow], parentRow));
 
 			var childItems = new List<ITreeGridItem>();
 			for (int i = firstChildRow; i < firstChildRow + childController.Count; i++)
@@ -408,7 +406,7 @@ namespace Eto.CustomControls
 			RootTreeController.OnCollapsed(new TreeGridViewItemEventArgs(args.Item));
 			CollapseSection (row);
 
-			ResetCollection ();
+			//ResetCollection ();
 
 			if (shouldSelect)
 				Handler.SelectRow (row);
@@ -442,10 +440,26 @@ namespace Eto.CustomControls
 					{
 						treeController.CollectionChanged -= OnStoreCollectionChanged;
 						Sections.Remove(treeController);
+
+                        NotifySectionCollapsed(treeController);
 					}
 				}
 			}
 			ClearCache ();
+		}
+
+		void NotifySectionCollapsed(TreeController treeController)
+		{
+			var parentRow = treeController.StartRow;
+			var firstChildRow = parentRow + 1;
+			OnStoreCollectionChanged(RootTreeController, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, this[parentRow], this[parentRow], parentRow));
+
+			var childItems = new List<ITreeGridItem>();
+			for (int i = firstChildRow; i < firstChildRow + treeController.Count; i++)
+			{
+				childItems.Add(this[i]);
+			}
+			OnStoreCollectionChanged(RootTreeController, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, childItems, firstChildRow));
 		}
 
 		public int Count
