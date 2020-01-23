@@ -20,6 +20,7 @@ namespace Eto.CustomControls
 		internal void ClearCache()
 		{
 			cache.Clear();
+			rootTreeController.ClearCache();
 		}
 
 		internal void OnStoreCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
@@ -27,34 +28,45 @@ namespace Eto.CustomControls
 			switch (e.Action)
 			{
 				case NotifyCollectionChangedAction.Add:
-					foreach (var newItem in e.NewItems.Cast<ITreeGridItem>())
-					{
-						var row = IndexOf(newItem);
-						//var row = e.NewStartingIndex; //.((TreeGridItemCollection)store).IndexOf(newItem); // TODO calculate using sections
-						if (row < 0)
-							return;
-						OnTriggerCollectionChanged(
-							new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, newItem, row)); // TODO use overload with collection
-					}
+					NotifyCollectionChanged(e.Action, e.NewItems.Cast<ITreeGridItem>().ToArray());
 					break;
 				case NotifyCollectionChangedAction.Remove:
-					foreach (var oldItem in e.OldItems.Cast<ITreeGridItem>())
-					{
-						var row = e.OldStartingIndex; //((TreeGridItemCollection)store).IndexOf(oldItem);
-						if (row < 0)
-							return;
-						OnTriggerCollectionChanged(
-							new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, oldItem, row));
-					}
+					NotifyCollectionChanged(e.Action, e.OldItems.Cast<ITreeGridItem>().ToArray());
 					break;
 				case NotifyCollectionChangedAction.Reset:
 					break;
 				case NotifyCollectionChangedAction.Replace:
+					// Hack to avoid clearing the cache
+					int row = IndexOf(e.NewItems.Cast<ITreeGridItem>().Single());
+					OnTriggerCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, e.OldItems.Cast<ITreeGridItem>().Single(), row));
+					OnTriggerCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, e.NewItems.Cast<ITreeGridItem>().Single(), row));
 					break;
 				case NotifyCollectionChangedAction.Move:
-				//break;
+					//break;
 				default:
 					throw new ArgumentOutOfRangeException();
+			}
+		}
+
+		void NotifyCollectionChanged(NotifyCollectionChangedAction action, ITreeGridItem[] items)
+		{
+			if (action == NotifyCollectionChangedAction.Add)
+				ClearCache();
+
+			var rows = new int[items.Length];
+			for (int i = 0; i < items.Length; i++)
+			{
+				rows[i] = IndexOf(items[i]);
+			}
+
+			if (action == NotifyCollectionChangedAction.Remove)
+				ClearCache();
+
+			for (int i = 0; i < items.Length; i++)
+			{
+				if (rows[i] < 0)
+					continue;
+				OnTriggerCollectionChanged(new NotifyCollectionChangedEventArgs(action, items[i], rows[i]));
 			}
 		}
 
