@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using Eto.Forms;
 using Eto.Drawing;
 
@@ -7,8 +6,8 @@ namespace TestEtoApp
 {
     public class MainForm : Form
     {
-        private static TreeGridItemCollection treeItems;
-        private TreeGridView treeControl;
+        static TreeGridItemCollection treeItems;
+        TreeGridView treeControl;
 
         public MainForm()
         {
@@ -23,52 +22,74 @@ namespace TestEtoApp
         {
             var layout = new StackLayout();
 
-            layout.Items.Add(new Button(Add) { Text = "Add Parent" });
+            layout.Items.Add(new Button(AddSiblingAbove) { Text = "Add Sibling Above" });
+            layout.Items.Add(new Button(AddSiblingBelow) { Text = "Add Sibling Below" });
             layout.Items.Add(new Button(AddChild) { Text = "Add Child" });
             layout.Items.Add(new Button(Remove) { Text = "Remove" });
 
             treeControl = new TreeGridView();
-            treeControl.Columns.Add(GetColumn());
+            treeControl.Columns.Add(new GridColumn
+            {
+                DataCell = new ImageTextCell(0, 1),
+                AutoSize = true
+            });
             treeControl.DataStore = GetItems();
             layout.Items.Add(treeControl);
 
             return layout;
         }
 
-        private void Add(object sender, EventArgs e)
+        void AddSiblingAbove(object sender, EventArgs e)
         {
-            var item = CreateItem(999);
-            treeItems.Add(item);
-            //treeControl.ReloadItem(item);
-            //treeControl.ReloadData();
+            var item = (TreeGridItem)treeControl.SelectedItem;
+            if (item == null)
+                return;
+
+            var parent = (TreeGridItem)item.Parent;
+            var collection = parent == null ? treeItems : parent.Children;
+
+            var newItem = CreateItem(123);
+            var i = collection.IndexOf(item);
+            collection.Insert(i, newItem);
         }
 
-        private void AddChild(object sender, EventArgs e)
+        void AddSiblingBelow(object sender, EventArgs e)
         {
-            var item = CreateItem(888);
-            ((TreeGridItem)treeItems.Last()).Children.Add(item);
-            //((TreeGridItem) treeItems.Last()).Expanded = true;
-            //treeControl.ReloadItem(item);
-            //treeControl.ReloadData();
+            var item = (TreeGridItem)treeControl.SelectedItem;
+            if (item == null)
+                return;
+
+            var parent = (TreeGridItem)item.Parent;
+            var collection = parent == null ? treeItems : parent.Children;
+
+            var newItem = CreateItem(123);
+            var i = collection.IndexOf(item);
+            collection.Insert(i + 1, newItem);
         }
 
-        private void Remove(object sender, EventArgs e)
+        void AddChild(object sender, EventArgs e)
         {
-            if (treeItems.Any())
-                treeItems.RemoveAt(treeItems.Count - 1);
-            //treeControl.ReloadData();
+            var item = (TreeGridItem)treeControl.SelectedItem;
+            if (item == null)
+                return;
+
+            var newItem = CreateItem(888);
+            item.Children.Add(newItem);
         }
 
-        GridColumn GetColumn()
+        void Remove(object sender, EventArgs e)
         {
-            return new GridColumn
-            {
-                DataCell = new ImageTextCell(0, 1),
-                AutoSize = true
-            };
+            var item = (TreeGridItem)treeControl.SelectedItem;
+            if (item == null)
+                return;
+
+            var parent = (TreeGridItem)item.Parent;
+            var collection = parent == null ? treeItems : parent.Children;
+
+            collection.Remove(item);
         }
 
-        private static TreeGridItemCollection GetItems()
+        static TreeGridItemCollection GetItems()
         {
             treeItems = new TreeGridItemCollection();
 
@@ -78,9 +99,9 @@ namespace TestEtoApp
             return treeItems;
         }
 
-        private static TreeGridItem CreateItem(int i)
+        static TreeGridItem CreateItem(int i)
         {
-            var item = new TreeGridItem(new object[] {null, $"Item{i}"});
+            var item = new TreeGridItem(new object[] { null, $"Item{i}" });
             //{
             //    Expanded = true
             //};
