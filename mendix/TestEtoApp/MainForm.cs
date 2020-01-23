@@ -8,6 +8,7 @@ namespace TestEtoApp
     {
         static TreeGridItemCollection treeItems;
         TreeGridView treeControl;
+        private int counter;
 
         public MainForm()
         {
@@ -48,7 +49,7 @@ namespace TestEtoApp
             var parent = (TreeGridItem)item.Parent;
             var collection = parent == null ? treeItems : parent.Children;
 
-            var newItem = CreateItem(123);
+            var newItem = CreateItem();
             var i = collection.IndexOf(item);
             collection.Insert(i, newItem);
         }
@@ -62,7 +63,7 @@ namespace TestEtoApp
             var parent = (TreeGridItem)item.Parent;
             var collection = parent == null ? treeItems : parent.Children;
 
-            var newItem = CreateItem(123);
+            var newItem = CreateItem();
             var i = collection.IndexOf(item);
             collection.Insert(i + 1, newItem);
         }
@@ -73,7 +74,7 @@ namespace TestEtoApp
             if (item == null)
                 return;
 
-            var newItem = CreateItem(888);
+            var newItem = CreateItem();
             item.Children.Add(newItem);
         }
 
@@ -89,19 +90,20 @@ namespace TestEtoApp
             collection.Remove(item);
         }
 
-        static TreeGridItemCollection GetItems()
+        TreeGridItemCollection GetItems()
         {
             treeItems = new TreeGridItemCollection();
 
             for (var i = 0; i < 3; i++)
-                treeItems.Add(CreateItem(i));
+                treeItems.Add(CreateItem());
 
             return treeItems;
         }
 
-        static TreeGridItem CreateItem(int i)
+        TreeGridItem CreateItem()
         {
-            var item = new TreeGridItem(new object[] { null, $"Item{i}" });
+            
+            var item = new TreeGridItem(new object[] { null, $"Item{counter++}" });
             //{
             //    Expanded = true
             //};

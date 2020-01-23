@@ -78,12 +78,10 @@ namespace Eto.CustomControls
 				case NotifyCollectionChangedAction.Add:
 					foreach (var newItem in e.NewItems.Cast<TreeGridItem>()) 
 						newItem.Children.CollectionChanged += OnChildrenCollectionChanged;
-					//treeDataStore.ClearCache();
 					break;
 				case NotifyCollectionChangedAction.Remove:
 					foreach (var oldItem in e.OldItems.Cast<TreeGridItem>()) 
 						oldItem.Children.CollectionChanged -= OnChildrenCollectionChanged;
-					//treeDataStore.ClearCache();
 					break;
 				case NotifyCollectionChangedAction.Reset:
 					ResetCollection();
@@ -148,6 +146,7 @@ namespace Eto.CustomControls
 			
 			section.CollectionChanged -= OnStoreCollectionChanged;
 
+			// TODO Check sub-sections?
 			//for (int i = 0; i < section.Count; i++)
 			//{
 			//	var childTreeGridItem = section[i];

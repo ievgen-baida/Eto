@@ -150,7 +150,7 @@ namespace Eto.Wpf.Forms.Controls
 
 		public void ReloadItem(ITreeGridItem item)
 		{
-			dataStore.ReloadData();
+			dataStore.ReloadData(); // TODO change to ReloadItem
 		}
 
 		public ITreeGridItem GetCellAt(PointF location, out int column)
