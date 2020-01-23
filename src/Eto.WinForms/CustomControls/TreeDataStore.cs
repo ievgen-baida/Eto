@@ -7,19 +7,20 @@ using Eto.Forms;
 
 namespace Eto.CustomControls
 {
-	public class TreeControllerStore : ITreeGridStore<ITreeGridItem>, INotifyCollectionChanged, IList
+	public class TreeDataStore : ITreeGridStore<ITreeGridItem>, IList, INotifyCollectionChanged
 	{
-		internal Dictionary<int, ITreeGridItem> Cache { get; } = new Dictionary<int, ITreeGridItem>();
+		private readonly Dictionary<int, ITreeGridItem> cache = new Dictionary<int, ITreeGridItem>();
+		private readonly TreeController rootTreeController;
 
-		public TreeControllerStore(ITreeHandler handler)
+		public TreeDataStore(ITreeHandler handler)
 		{
-			Handler = handler;
-			RootTreeController = new TreeController(this) { Handler = handler };
+			rootTreeController = new TreeController(this, handler);
 		}
 
-		ITreeHandler Handler { get; }
-
-		TreeController RootTreeController { get; }
+		internal void ClearCache()
+		{
+			cache.Clear();
+		}
 
 		internal void OnStoreCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
 		{
@@ -100,17 +101,17 @@ namespace Eto.CustomControls
 			get
 			{
 				ITreeGridItem item;
-				if (!Cache.TryGetValue(row, out item))
+				if (!cache.TryGetValue(row, out item))
 				{
-					item = RootTreeController.GetItemAtRow(row);
+					item = rootTreeController.GetItemAtRow(row);
 					if (item != null)
-						Cache[row] = item;
+						cache[row] = item;
 				}
 				return item;
 			}
 		}
 
-		public int Count => RootTreeController.Count;
+		public int Count => rootTreeController.Count;
 
 		#endregion
 
@@ -133,6 +134,8 @@ namespace Eto.CustomControls
 
 		public void Clear()
 		{
+
+			ClearCache();
 		}
 
 		public bool Contains(object value)
@@ -142,7 +145,19 @@ namespace Eto.CustomControls
 
 		public int IndexOf(object value)
 		{
-			return RootTreeController.IndexOf(value as ITreeGridItem);
+			var item = value as ITreeGridItem;
+
+			if (cache.ContainsValue(item))
+			{
+				var found = cache.First(r => ReferenceEquals(item, r.Value));
+				return found.Key;
+			}
+			for (int i = 0; i < Count; i++)
+			{
+				if (ReferenceEquals(this[i], item))
+					return i;
+			}
+			return -1;
 		}
 
 		public void Insert(int index, object value)
@@ -189,7 +204,7 @@ namespace Eto.CustomControls
 		{
 			for (int i = 0; i < Count; i++)
 			{
-				yield return RootTreeController[i];
+				yield return rootTreeController[i];
 			}
 		}
 
@@ -200,23 +215,23 @@ namespace Eto.CustomControls
 
 		public void InitializeItems(ITreeGridStore<ITreeGridItem> value)
 		{
-			RootTreeController.InitializeItems(value);
-			RootTreeController.CollectionChanged += OnStoreCollectionChanged;
+			rootTreeController.InitializeItems(value);
+			rootTreeController.CollectionChanged += OnStoreCollectionChanged;
 		}
 
-		public TreeController.TreeNode GetNodeAtRow(int row) => RootTreeController.GetNodeAtRow(row);
+		public TreeController.TreeNode GetNodeAtRow(int row) => rootTreeController.GetNodeAtRow(row);
 
-		public void ExpandToItem(ITreeGridItem value) => RootTreeController.ExpandToItem(value);
+		public void ExpandToItem(ITreeGridItem value) => rootTreeController.ExpandToItem(value);
 
-		public void ReloadData() => RootTreeController.ReloadData();
+		public void ReloadData() => rootTreeController.ReloadData();
 
-		public int LevelAtRow(int row) => RootTreeController.LevelAtRow(row);
+		public int LevelAtRow(int row) => rootTreeController.LevelAtRow(row);
 
-		public bool CollapseRow(int row) => RootTreeController.CollapseRow(row);
+		public bool CollapseRow(int row) => rootTreeController.CollapseRow(row);
 
-		public bool IsExpanded(int row) => RootTreeController.IsExpanded(row);
+		public bool IsExpanded(int row) => rootTreeController.IsExpanded(row);
 
-		public bool ExpandRow(int row) => RootTreeController.ExpandRow(row);
+		public bool ExpandRow(int row) => rootTreeController.ExpandRow(row);
 
 		#endregion
 	}

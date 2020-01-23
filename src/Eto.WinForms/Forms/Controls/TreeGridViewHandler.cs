@@ -23,19 +23,19 @@ namespace Eto.WinForms.Forms.Controls
 
 		public bool ClassicGridLines { get; set; }
 
-		TreeControllerStore controller;
+		TreeDataStore dataStore;
 
 		protected override object GetItemAtRow(int row)
 		{
-			if (row >= controller.Count)
+			if (row >= dataStore.Count)
 				return null;
-			return controller[row];
+			return dataStore[row];
 		}
 
 		public TreeGridViewHandler()
 		{
-			controller = new TreeControllerStore(this);
-			controller.CollectionChanged += (sender, e) => UpdateCollection();
+			dataStore = new TreeDataStore(this);
+			dataStore.CollectionChanged += (sender, e) => UpdateCollection();
 		}
 
 		public override void OnLoad(EventArgs e)
@@ -78,16 +78,16 @@ namespace Eto.WinForms.Forms.Controls
 					};
 					break;
 				case TreeGridView.ExpandingEvent:
-					controller.Expanding += (sender, e) => Callback.OnExpanding(Widget, e);
+					dataStore.Expanding += (sender, e) => Callback.OnExpanding(Widget, e);
 					break;
 				case TreeGridView.ExpandedEvent:
-					controller.Expanded += (sender, e) => Callback.OnExpanded(Widget, e);
+					dataStore.Expanded += (sender, e) => Callback.OnExpanded(Widget, e);
 					break;
 				case TreeGridView.CollapsingEvent:
-					controller.Collapsing += (sender, e) => Callback.OnCollapsing(Widget, e);
+					dataStore.Collapsing += (sender, e) => Callback.OnCollapsing(Widget, e);
 					break;
 				case TreeGridView.CollapsedEvent:
-					controller.Collapsed += (sender, e) => Callback.OnCollapsed(Widget, e);
+					dataStore.Collapsed += (sender, e) => Callback.OnCollapsed(Widget, e);
 					break;
 				case TreeGridView.SelectedItemChangedEvent:
 					Control.SelectionChanged += (sender, e) =>
@@ -108,10 +108,10 @@ namespace Eto.WinForms.Forms.Controls
 
 		public ITreeGridStore<ITreeGridItem> DataStore
 		{
-			get { return controller.Store; }
+			get { return dataStore.Store; }
 			set
 			{
-				controller.InitializeItems(value);
+				dataStore.InitializeItems(value);
 			}
 		}
 
@@ -127,7 +127,7 @@ namespace Eto.WinForms.Forms.Controls
 
 		void UpdateCollection()
 		{
-			Control.RowCount = controller.Count;
+			Control.RowCount = dataStore.Count;
 			if (Widget.Loaded)
 			{
 				Control.Refresh();
@@ -142,14 +142,14 @@ namespace Eto.WinForms.Forms.Controls
 				if (Control.SelectedRows.Count == 0)
 					return null;
 				var index = Control.SelectedRows.OfType<swf.DataGridViewRow>().Select(r => r.Index).FirstOrDefault();
-				return controller[index];
+				return dataStore[index];
 			}
 			set
 			{
-				if (controller != null && value != null)
+				if (dataStore != null && value != null)
 				{
-					controller.ExpandToItem(value);
-					var index = controller.IndexOf(value);
+					dataStore.ExpandToItem(value);
+					var index = dataStore.IndexOf(value);
 					if (index >= 0)
 						Control.Rows[index].Selected = true;
 				}
@@ -202,7 +202,7 @@ namespace Eto.WinForms.Forms.Controls
 					paintParts &= ~swf.DataGridViewPaintParts.Background;
 				}
 
-				var node = controller.GetNodeAtRow(rowIndex);
+				var node = dataStore.GetNodeAtRow(rowIndex);
 				var treeRect = cellBounds;
 				treeRect.X += node.Level * INDENT_WIDTH;
 				treeRect.Width = 16;
@@ -285,7 +285,7 @@ namespace Eto.WinForms.Forms.Controls
 					if (swf.Application.RenderWithVisualStyles)
 					{
 						EnsureGlyphRenderers();
-						if (controller.IsExpanded(rowIndex))
+						if (dataStore.IsExpanded(rowIndex))
 							openRenderer.DrawBackground(graphics, new sd.Rectangle(treeRect.X, treeRect.Y + (treeRect.Height / 2) - 8, 16, 16));
 						else
 						{
@@ -302,7 +302,7 @@ namespace Eto.WinForms.Forms.Controls
 						graphics.FillRectangle(sd.SystemBrushes.Window, glyphRect);
 						graphics.DrawRectangle(sd.SystemPens.ControlDark, glyphRect);
 						glyphRect.Inflate(-2, -2);
-						if (!controller.IsExpanded(rowIndex))
+						if (!dataStore.IsExpanded(rowIndex))
 						{
 							var midx = glyphRect.X + glyphRect.Width / 2;
 							graphics.DrawLine(sd.SystemPens.ControlDarkDark, midx, glyphRect.Top, midx, glyphRect.Bottom);
@@ -318,7 +318,7 @@ namespace Eto.WinForms.Forms.Controls
 		public override int GetRowOffset(GridColumnHandler column, int rowIndex)
 		{
 			if (object.ReferenceEquals(column.Widget, this.Widget.Columns[0]))
-				return INDENT_WIDTH + controller.LevelAtRow(rowIndex) * INDENT_WIDTH;
+				return INDENT_WIDTH + dataStore.LevelAtRow(rowIndex) * INDENT_WIDTH;
 			else
 				return 0;
 		}
@@ -327,13 +327,13 @@ namespace Eto.WinForms.Forms.Controls
 		{
 			if (rowIndex >= 0 && object.ReferenceEquals(column.Widget, this.Widget.Columns[0]))
 			{
-				var offset = INDENT_WIDTH + controller.LevelAtRow(rowIndex) * INDENT_WIDTH;
+				var offset = INDENT_WIDTH + dataStore.LevelAtRow(rowIndex) * INDENT_WIDTH;
 				if (e.X < offset && e.X >= offset - INDENT_WIDTH)
 				{
-					if (controller.IsExpanded(rowIndex))
-						controller.CollapseRow(rowIndex);
+					if (dataStore.IsExpanded(rowIndex))
+						dataStore.CollapseRow(rowIndex);
 					else
-						controller.ExpandRow(rowIndex);
+						dataStore.ExpandRow(rowIndex);
 
 					return true;
 				}
@@ -367,12 +367,12 @@ namespace Eto.WinForms.Forms.Controls
 		{
 			var selectedItems = SelectedItems.OfType<ITreeGridItem>().ToList();
 			SupressSelectionChanged++;
-			controller.ReloadData();
+			dataStore.ReloadData();
 			Control.ClearSelection();
 			bool selectionChanged = false;
 			foreach (var selectedItem in selectedItems)
 			{
-				var row = controller.IndexOf(selectedItem);
+				var row = dataStore.IndexOf(selectedItem);
 				if (row >= 0)
 					Control.Rows[row].Selected = true;
 				else

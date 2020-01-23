@@ -14,18 +14,18 @@ namespace Eto.Wpf.Forms.Controls
 {
 	public class TreeGridViewHandler : GridHandler<TreeGridView, TreeGridView.ICallback>, TreeGridView.IHandler, ITreeHandler
 	{
-		TreeControllerStore controller;
+		TreeDataStore dataStore;
 		ITreeGridItem lastSelected;
 
 		protected override object GetItemAtRow(int row)
 		{
-			return controller[row];
+			return dataStore[row];
 		}
 
 		protected override void Initialize()
 		{
 			base.Initialize();
-			controller = new TreeControllerStore(this);
+			dataStore = new TreeDataStore(this);
 			Control.Background = sw.SystemColors.WindowBrush;
 		}
 
@@ -55,16 +55,16 @@ namespace Eto.Wpf.Forms.Controls
 					};
 					break;
 				case TreeGridView.ExpandingEvent:
-					controller.Expanding += (sender, e) => Callback.OnExpanding(Widget, e);
+					dataStore.Expanding += (sender, e) => Callback.OnExpanding(Widget, e);
 					break;
 				case TreeGridView.ExpandedEvent:
-					controller.Expanded += (sender, e) => Callback.OnExpanded(Widget, e);
+					dataStore.Expanded += (sender, e) => Callback.OnExpanded(Widget, e);
 					break;
 				case TreeGridView.CollapsingEvent:
-					controller.Collapsing += (sender, e) => Callback.OnCollapsing(Widget, e);
+					dataStore.Collapsing += (sender, e) => Callback.OnCollapsing(Widget, e);
 					break;
 				case TreeGridView.CollapsedEvent:
-					controller.Collapsed += (sender, e) => Callback.OnCollapsed(Widget, e);
+					dataStore.Collapsed += (sender, e) => Callback.OnCollapsed(Widget, e);
 					break;
 				case TreeGridView.SelectedItemChangedEvent:
 					Control.SelectedCellsChanged += (sender, e) =>
@@ -98,11 +98,11 @@ namespace Eto.Wpf.Forms.Controls
 
 		public ITreeGridStore<ITreeGridItem> DataStore
 		{
-			get { return controller; }
+			get { return dataStore; }
 			set
 			{
-				controller.InitializeItems(value);
-				Control.ItemsSource = controller;
+				dataStore.InitializeItems(value);
+				Control.ItemsSource = dataStore;
 			}
 		}
 
@@ -111,9 +111,9 @@ namespace Eto.Wpf.Forms.Controls
 			get { return Control.SelectedItem as ITreeGridItem; }
 			set
 			{
-				if (controller != null && value != null)
+				if (dataStore != null && value != null)
 				{
-					controller.ExpandToItem(value);
+					dataStore.ExpandToItem(value);
 					Control.SelectedItem = value;
 					Control.ScrollIntoView(value);
 				}
@@ -127,7 +127,7 @@ namespace Eto.Wpf.Forms.Controls
 		public override sw.FrameworkElement SetupCell(IGridColumnHandler column, sw.FrameworkElement defaultContent)
 		{
 			if (object.ReferenceEquals(column, Columns.Collection[0].Handler))
-				return TreeToggleButton.Create(defaultContent, controller);
+				return TreeToggleButton.Create(defaultContent, dataStore);
 			return defaultContent;
 		}
 
@@ -145,12 +145,12 @@ namespace Eto.Wpf.Forms.Controls
 
 		public void ReloadData()
 		{
-			controller.ReloadData();
+			dataStore.ReloadData();
 		}
 
 		public void ReloadItem(ITreeGridItem item)
 		{
-			controller.ReloadData();
+			dataStore.ReloadData();
 		}
 
 		public ITreeGridItem GetCellAt(PointF location, out int column)
@@ -201,7 +201,7 @@ namespace Eto.Wpf.Forms.Controls
 					else
 					{
 						parent = treeGridItem?.Parent;
-						var node = controller.GetNodeAtRow(row.GetIndex());
+						var node = dataStore.GetNodeAtRow(row.GetIndex());
 						childIndex = node.Index;
 					}
 				}
@@ -209,14 +209,14 @@ namespace Eto.Wpf.Forms.Controls
 				{
 					position = GridDragPosition.Before;
 					parent = (cell.Item as ITreeGridItem)?.Parent;
-					var node = controller.GetNodeAtRow(row.GetIndex());
+					var node = dataStore.GetNodeAtRow(row.GetIndex());
 					childIndex = node.Index;
 				}
 				else
 				{
 					position = GridDragPosition.Over;
 					parent = (cell.Item as ITreeGridItem)?.Parent;
-					var node = controller.GetNodeAtRow(row.GetIndex());
+					var node = dataStore.GetNodeAtRow(row.GetIndex());
 					childIndex = node.Index;
 				}
 			}
@@ -300,7 +300,7 @@ namespace Eto.Wpf.Forms.Controls
 					}
 					else
 					{
-						var node = controller.GetNodeAtRow(row.GetIndex());
+						var node = dataStore.GetNodeAtRow(row.GetIndex());
 
 						var level = node.Level + 1; // indicator to the right of the expanders to align with text
 						var i = info.Parent as ITreeGridItem;

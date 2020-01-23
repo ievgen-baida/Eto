@@ -4,7 +4,6 @@ using System.Windows;
 using Eto.Forms;
 using System.Windows.Controls;
 using Eto.CustomControls;
-using swc = System.Windows.Controls;
 
 namespace Eto.Wpf.CustomControls.TreeGridView
 {
@@ -12,7 +11,7 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 	{
 		public const int LevelWidth = 16;
 
-		public TreeControllerStore Controller { get; set; }
+		public TreeDataStore DataStore { get; set; }
 
 		public ITreeGridItem Item { get; private set; }
 
@@ -21,10 +20,10 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 			DefaultStyleKeyProperty.OverrideMetadata (typeof (TreeToggleButton), new FrameworkPropertyMetadata (typeof (TreeToggleButton)));
 		}
 
-		public static FrameworkElement Create (FrameworkElement content, TreeControllerStore controller)
+		public static FrameworkElement Create (FrameworkElement content, TreeDataStore dataStore)
 		{
 			var dock = new DockPanel();
-			var button = new TreeToggleButton { Controller = controller, Width = 16 };
+			var button = new TreeToggleButton { DataStore = dataStore, Width = 16 };
 			DockPanel.SetDock(button, Dock.Left);
 			dock.Children.Add (button);
 			dock.DataContextChanged += (sender, e) => button.Configure(dock.DataContext as ITreeGridItem);
@@ -36,15 +35,16 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 		{
 			base.OnPreviewMouseLeftButtonDown (e);
 			
-			var index = Controller.IndexOf ((ITreeGridItem)DataContext);
+			var index = DataStore.IndexOf((ITreeGridItem)DataContext);
 			if (index >= 0) {
 				Dispatcher.BeginInvoke (new Action (delegate {
 					if (IsChecked ?? false) {
-						if (Controller.CollapseRow (index)) {
+						if (DataStore.CollapseRow(index))
+						{
 							IsChecked = false;
 						}
 					}
-					else if (Controller.ExpandRow (index)) {
+					else if (DataStore.ExpandRow(index)) {
 						IsChecked = true;
 					}
 				}));
@@ -55,10 +55,10 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 		public void Configure (ITreeGridItem item)
 		{
 			Item = item;
-			var index = Controller.IndexOf (item);
-			IsChecked = Controller.IsExpanded (index);
+			var index = DataStore.IndexOf(item);
+			IsChecked = DataStore.IsExpanded(index);
 			Visibility = item != null && item.Expandable ? Visibility.Visible : Visibility.Hidden;
-			Margin = new Thickness (Controller.LevelAtRow (index) * LevelWidth, 0, 0, 0);
+			Margin = new Thickness (DataStore.LevelAtRow (index) * LevelWidth, 0, 0, 0);
 		}
 	}
 }

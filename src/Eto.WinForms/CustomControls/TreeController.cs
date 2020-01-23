@@ -19,17 +19,19 @@ namespace Eto.CustomControls
 
 	public class TreeController : ITreeGridStore<ITreeGridItem>, INotifyCollectionChanged
 	{
+		readonly TreeDataStore treeDataStore;
+		readonly ITreeHandler handler;
+
 		int? countCache;
 		List<TreeController> sections;
 		TreeController parent;
 		ITreeGridStore<ITreeGridItem> store;
 
-		internal TreeController(TreeControllerStore rootTreeController)
+		internal TreeController(TreeDataStore treeDataStore, ITreeHandler handler)
 		{
-			RootTreeController = rootTreeController;
+			this.treeDataStore = treeDataStore;
+			this.handler = handler;
 		}
-
-		TreeControllerStore RootTreeController { get; }
 
 		int StartRow { get; set; }
 
@@ -69,7 +71,7 @@ namespace Eto.CustomControls
 			}
 		}
 
-		private void OnStoreCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+		void OnStoreCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
 		{
 			switch (e.Action)
 			{
@@ -94,10 +96,10 @@ namespace Eto.CustomControls
 					throw new ArgumentOutOfRangeException();
 			}
 
-			RootTreeController.OnStoreCollectionChanged(sender, e);
+			treeDataStore.OnStoreCollectionChanged(sender, e);
 		}
 
-		private void OnChildrenCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+		void OnChildrenCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
 		{
 			//var section = GetSectionOfChild(e.NewStartingIndex);
 			ReloadItem(((TreeGridItemCollection)sender)[0].Parent);
@@ -109,14 +111,12 @@ namespace Eto.CustomControls
 
 		void ReloadItem(ITreeGridItem item)
 		{
-			var row = IndexOf(item);
+			var row = treeDataStore.IndexOf(item);
 			if (row < 0)
 				return;
 			OnTriggerCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item, row));
 			OnTriggerCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, row));
 		}
-
-		public ITreeHandler Handler { get; set; }
 
 		public void InitializeItems (ITreeGridStore<ITreeGridItem> store)
 		{
@@ -151,7 +151,7 @@ namespace Eto.CustomControls
 					if (item.Expanded)
 					{
 						var children = (ITreeGridStore<ITreeGridItem>)item;
-						var section = new TreeController(RootTreeController) { StartRow = row, Handler = Handler, parent = this };
+						var section = new TreeController(treeDataStore, handler) { StartRow = row, parent = this };
 						section.InitializeItems(children);
 						Sections.Add(section);
 					}
@@ -166,25 +166,10 @@ namespace Eto.CustomControls
 			ResetCollection();
 		}
 
-		void ClearCache ()
+		void ClearCache()
 		{
 			countCache = null;
-			RootTreeController.Cache.Clear ();
-		}
-
-		public int IndexOf (ITreeGridItem item)
-		{
-			if (RootTreeController.Cache.ContainsValue(item))
-			{
-				var found = RootTreeController.Cache.First(r => ReferenceEquals(item, r.Value));
-				return found.Key;
-			}
-			for (int i = 0; i < Count; i++)
-			{
-				if (ReferenceEquals(this[i], item))
-					return i;
-			}
-			return -1;
+			treeDataStore.ClearCache();
 		}
 
 		public int LevelAtRow (int row)
@@ -208,7 +193,7 @@ namespace Eto.CustomControls
 			return 0;
 		}
 
-		public ITreeGridItem this[int row] => RootTreeController[row];
+		public ITreeGridItem this[int row] => treeDataStore[row];
 
 		public class TreeNode
 		{
@@ -312,12 +297,12 @@ namespace Eto.CustomControls
 		public bool ExpandRow (int row)
 		{
 			var args = new TreeGridViewItemCancelEventArgs(GetItemAtRow(row));
-			RootTreeController.OnExpanding(args);
+			treeDataStore.OnExpanding(args);
 			if (args.Cancel)
 				return false;
 			args.Item.Expanded = true;
 			ExpandRowInternal (row);
-			RootTreeController.OnExpanded(new TreeGridViewItemEventArgs(args.Item));
+			treeDataStore.OnExpanded(new TreeGridViewItemEventArgs(args.Item));
 			return true;
 		}
 
@@ -327,7 +312,7 @@ namespace Eto.CustomControls
 			TreeController childController = null;
 			if (sections == null || sections.Count == 0) {
 				children = (ITreeGridStore<ITreeGridItem>)Store [row];
-				childController = new TreeController(RootTreeController) { StartRow = row, Handler = Handler, parent = this };
+				childController = new TreeController(treeDataStore, handler) { StartRow = row, parent = this };
 				childController.InitializeItems(children);
 				Sections.Add (childController);
 				// TODO notify rows moved and added
@@ -350,7 +335,7 @@ namespace Eto.CustomControls
 				}
 				if (addTop && row < Store.Count) {
 					children = (ITreeGridStore<ITreeGridItem>)Store [row];
-					childController = new TreeController(RootTreeController) { StartRow = row, Handler = Handler, parent = this };
+					childController = new TreeController(treeDataStore, handler) { StartRow = row, parent = this };
 					childController.InitializeItems(children);
 					Sections.Add (childController);
 					// TODO notify rows moved and added
@@ -369,19 +354,19 @@ namespace Eto.CustomControls
 		{
 			var parentRow = childController.StartRow;
 			var firstChildRow = parentRow + 1;
-			OnStoreCollectionChanged(RootTreeController, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, this[parentRow], this[parentRow], parentRow));
+			OnStoreCollectionChanged(treeDataStore, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, this[parentRow], this[parentRow], parentRow));
 
 			var childItems = new List<ITreeGridItem>();
 			for (int i = firstChildRow; i < firstChildRow + childController.Count; i++)
 			{
 				childItems.Add(this[i]);
 			}
-			OnStoreCollectionChanged(RootTreeController, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, childItems, firstChildRow));
+			OnStoreCollectionChanged(treeDataStore, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, childItems, firstChildRow));
 		}
 
 		bool ChildIsSelected (ITreeGridItem item)
 		{
-			var node = Handler.SelectedItem;
+			var node = handler.SelectedItem;
 
 			while (node != null) {
 				node = node.Parent;
@@ -395,27 +380,27 @@ namespace Eto.CustomControls
 		void ResetCollection ()
 		{
 			if (parent == null)
-				Handler.PreResetTree ();
+				handler.PreResetTree ();
 			OnTriggerCollectionChanged (new NotifyCollectionChangedEventArgs (NotifyCollectionChangedAction.Reset));
 			if (parent == null)
-				Handler.PostResetTree ();
+				handler.PostResetTree ();
 		}
 
 		public bool CollapseRow (int row)
 		{
 			var args = new TreeGridViewItemCancelEventArgs (GetItemAtRow (row));
-			RootTreeController.OnCollapsing(args);
+			treeDataStore.OnCollapsing(args);
 			if (args.Cancel)
 				return false;
-			var shouldSelect = !Handler.AllowMultipleSelection && ChildIsSelected (args.Item);
+			var shouldSelect = !handler.AllowMultipleSelection && ChildIsSelected (args.Item);
 			args.Item.Expanded = false;
-			RootTreeController.OnCollapsed(new TreeGridViewItemEventArgs(args.Item));
+			treeDataStore.OnCollapsed(new TreeGridViewItemEventArgs(args.Item));
 			CollapseSection (row);
 
 			//ResetCollection ();
 
 			if (shouldSelect)
-				Handler.SelectRow (row);
+				handler.SelectRow (row);
 
 			return true;
 		}
@@ -458,14 +443,14 @@ namespace Eto.CustomControls
 		{
 			var parentRow = treeController.StartRow;
 			var firstChildRow = parentRow + 1;
-			OnStoreCollectionChanged(RootTreeController, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, this[parentRow], this[parentRow], parentRow));
+			OnStoreCollectionChanged(treeDataStore, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, this[parentRow], this[parentRow], parentRow));
 
 			var childItems = new List<ITreeGridItem>();
 			for (int i = firstChildRow; i < firstChildRow + treeController.Count; i++)
 			{
 				childItems.Add(this[i]);
 			}
-			OnStoreCollectionChanged(RootTreeController, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, childItems, firstChildRow));
+			OnStoreCollectionChanged(treeDataStore, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, childItems, firstChildRow));
 		}
 
 		public int Count
@@ -506,7 +491,7 @@ namespace Eto.CustomControls
 			var parents = GetParents (value).Reverse ();
 
 			foreach (var item in parents) {
-				var row = IndexOf (item);
+				var row = treeDataStore.IndexOf(item);
 				if (row >= 0 && !IsExpanded(row))
 					ExpandRow (row);
 			}
