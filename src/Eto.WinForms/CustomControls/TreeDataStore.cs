@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
 using Eto.Forms;
@@ -9,45 +10,53 @@ namespace Eto.CustomControls
 {
 	public class TreeDataStore : ITreeGridStore<ITreeGridItem>, IList, INotifyCollectionChanged
 	{
-		private readonly Dictionary<int, ITreeGridItem> cache = new Dictionary<int, ITreeGridItem>();
+		private readonly ObservableCollection<ITreeGridItem> cache = new ObservableCollection<ITreeGridItem>();
 		private readonly TreeController rootTreeController;
 
 		public TreeDataStore(ITreeHandler handler)
 		{
 			rootTreeController = new TreeController(this, handler);
+			cache.CollectionChanged += (s, e) => OnTriggerCollectionChanged(e);
 		}
 
-		internal void ClearCache()
-		{
-			cache.Clear();
-			rootTreeController.ClearCache();
-		}
-
-		internal void OnStoreCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+		internal void UpdateCache(ITreeGridStore<ITreeGridItem> source, NotifyCollectionChangedEventArgs e)
 		{
 			switch (e.Action)
 			{
 				case NotifyCollectionChangedAction.Add:
-					NotifyCollectionChanged(e.Action, e.NewItems.Cast<ITreeGridItem>().ToArray());
+					var index = e.NewStartingIndex;
+					foreach (var item in e.NewItems.Cast<ITreeGridItem>())
+					{
+						cache.Insert(index++, item);
+					}
 					break;
 				case NotifyCollectionChangedAction.Remove:
-					NotifyCollectionChanged(e.Action, e.OldItems.Cast<ITreeGridItem>().ToArray());
+					// TODO use OldStartingIndex? from the end
+					foreach (var item in e.OldItems.Cast<ITreeGridItem>())
+					{
+						cache.Remove(item);
+					}
 					break;
 				case NotifyCollectionChangedAction.Reset:
+					OnTriggerCollectionChanged(e);
 					break;
 				case NotifyCollectionChangedAction.Replace:
-					// Hack to avoid clearing the cache
-					int row = IndexOf(e.NewItems.Cast<ITreeGridItem>().Single());
-					OnTriggerCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, e.OldItems.Cast<ITreeGridItem>().Single(), row));
-					OnTriggerCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, e.NewItems.Cast<ITreeGridItem>().Single(), row));
+					for (int i = 0; i < e.NewItems.Count; i++)
+					{
+						int row = IndexOf(e.OldItems[i]);
+						cache.RemoveAt(row);
+						cache.Insert(row, (ITreeGridItem)e.NewItems[i]);
+					}
 					break;
 				case NotifyCollectionChangedAction.Move:
-					//break;
+					OnTriggerCollectionChanged(e);
+					break;
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
 		}
 
+		/*
 		void NotifyCollectionChanged(NotifyCollectionChangedAction action, ITreeGridItem[] items)
 		{
 			if (action == NotifyCollectionChangedAction.Add)
@@ -69,6 +78,7 @@ namespace Eto.CustomControls
 				OnTriggerCollectionChanged(new NotifyCollectionChangedEventArgs(action, items[i], rows[i]));
 			}
 		}
+		*/
 
 		public event EventHandler<TreeGridViewItemCancelEventArgs> Expanding;
 		public event EventHandler<TreeGridViewItemCancelEventArgs> Collapsing;
@@ -80,7 +90,7 @@ namespace Eto.CustomControls
 		{
 			if (Expanding != null) Expanding(this, e);
 		}
-
+	
 		internal void OnCollapsing(TreeGridViewItemCancelEventArgs e)
 		{
 			if (Collapsing != null) Collapsing(this, e);
@@ -108,25 +118,11 @@ namespace Eto.CustomControls
 
 		#region ITreeGridStore<ITreeGridItem> implementation
 
-		public ITreeGridItem this[int row]
-		{
-			get
-			{
-				ITreeGridItem item;
-				if (!cache.TryGetValue(row, out item))
-				{
-					item = rootTreeController.GetItemAtRow(row);
-					if (item != null)
-						cache[row] = item;
-				}
-				return item;
-			}
-		}
+		public ITreeGridItem this[int row] => cache[row];
 
-		public int Count => rootTreeController.Count;
+		public int Count => cache.Count;
 
 		#endregion
-
 
 		#region IList implementation
 
@@ -146,8 +142,7 @@ namespace Eto.CustomControls
 
 		public void Clear()
 		{
-
-			ClearCache();
+			cache.Clear();
 		}
 
 		public bool Contains(object value)
@@ -159,10 +154,10 @@ namespace Eto.CustomControls
 		{
 			var item = value as ITreeGridItem;
 
-			if (cache.ContainsValue(item))
+			var index = cache.IndexOf(item);
+			if (index >= 0)
 			{
-				var found = cache.First(r => ReferenceEquals(item, r.Value));
-				return found.Key;
+				return index;
 			}
 			for (int i = 0; i < Count; i++)
 			{
@@ -227,8 +222,9 @@ namespace Eto.CustomControls
 
 		public void InitializeItems(ITreeGridStore<ITreeGridItem> value)
 		{
+			Clear();
 			rootTreeController.InitializeItems(value);
-			rootTreeController.CollectionChanged += OnStoreCollectionChanged;
+			///rootTreeController.CollectionChanged += UpdateCache;
 		}
 
 		public TreeController.TreeNode GetNodeAtRow(int row) => rootTreeController.GetNodeAtRow(row);

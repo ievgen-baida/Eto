@@ -17,12 +17,12 @@ namespace Eto.CustomControls
 		void PostResetTree ();
 	}
 
-	public class TreeController : ITreeGridStore<ITreeGridItem>, INotifyCollectionChanged
+	public class TreeController : ITreeGridStore<ITreeGridItem>
 	{
 		readonly TreeDataStore treeDataStore;
 		readonly ITreeHandler handler;
 
-		int? countCache;
+		//int? countCache;
 		List<TreeController> sections;
 		TreeController parent;
 		ITreeGridStore<ITreeGridItem> store;
@@ -52,6 +52,7 @@ namespace Eto.CustomControls
                 if (store is TreeGridItemCollection oldCollection)
                 {
 	                oldCollection.CollectionChanged -= OnStoreCollectionChanged;
+					// TODO Do in recursively
 	                foreach (var childTreeGridItem in oldCollection)
 	                {
 		                if (childTreeGridItem is TreeGridItem treeGridItem)
@@ -76,11 +77,35 @@ namespace Eto.CustomControls
 			switch (e.Action)
 			{
 				case NotifyCollectionChangedAction.Add:
-					foreach (var newItem in e.NewItems.Cast<TreeGridItem>()) 
+					//var previousItem = e.NewStartingIndex > 0 ? Store[e.NewStartingIndex - 1] : null;
+
+					//if (previousItem != null)
+					//{
+					//	if (Sections[previousItem.startrow])
+					//		e = new NotifyCollectionChangedEventArgs(e.Action, e.NewItems,
+					//			previousSection.StartRow + previousSection.Count + 1);
+					//}
+
+					break;
+				case NotifyCollectionChangedAction.Remove:
+					//e = new NotifyCollectionChangedEventArgs(e.Action, e.OldItems, StartRow + e.OldStartingIndex);
+					throw new Exception("OOps");
+					break;
+			}
+
+			OnStoreCollectionChangedInternal(sender, e);
+		}
+
+		void OnStoreCollectionChangedInternal(object sender, NotifyCollectionChangedEventArgs e)
+		{
+			switch (e.Action)
+			{
+				case NotifyCollectionChangedAction.Add:
+					foreach (var newItem in e.NewItems.Cast<TreeGridItem>())
 						newItem.Children.CollectionChanged += OnChildrenCollectionChanged;
 					break;
 				case NotifyCollectionChangedAction.Remove:
-					foreach (var oldItem in e.OldItems.Cast<TreeGridItem>()) 
+					foreach (var oldItem in e.OldItems.Cast<TreeGridItem>())
 						oldItem.Children.CollectionChanged -= OnChildrenCollectionChanged;
 					break;
 				case NotifyCollectionChangedAction.Reset:
@@ -89,12 +114,12 @@ namespace Eto.CustomControls
 				case NotifyCollectionChangedAction.Replace:
 					break;
 				case NotifyCollectionChangedAction.Move:
-					//break;
+				//break;
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
 
-			treeDataStore.OnStoreCollectionChanged(sender, e);
+			OnTriggerCollectionChanged(e, (ITreeGridStore<ITreeGridItem>)sender);
 		}
 
 		void OnChildrenCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
@@ -104,13 +129,14 @@ namespace Eto.CustomControls
 			switch (e.Action)
 			{
 				case NotifyCollectionChangedAction.Add:
-					var parentItem = ((TreeGridItemCollection)sender)[0].Parent;
+					var parentItem = childrenCollection[0].Parent;
 					if (childrenCollection.Count == e.NewItems?.Count)
 						ReloadItem(parentItem);
 					if (parentItem.Expanded)
 					{
 						var addedChildren = e.NewItems.Cast<TreeGridItem>().ToArray();
-						treeDataStore.OnStoreCollectionChanged(sender, new NotifyCollectionChangedEventArgs(e.Action, addedChildren));
+						var startingIndex = treeDataStore.IndexOf(parentItem) + e.NewStartingIndex + 1;
+						OnTriggerCollectionChanged(new NotifyCollectionChangedEventArgs(e.Action, addedChildren, startingIndex), childrenCollection);
 					}
 
 					break;
@@ -126,7 +152,8 @@ namespace Eto.CustomControls
 					if (oldItemParent.Expanded)
 					{
 						var removedChildren = e.OldItems.Cast<TreeGridItem>().ToArray();
-						treeDataStore.OnStoreCollectionChanged(sender, new NotifyCollectionChangedEventArgs(e.Action, removedChildren));
+						//var startingIndex = treeDataStore.IndexOf(parentItem) + e.NewStartingIndex + 1;
+						OnTriggerCollectionChanged(new NotifyCollectionChangedEventArgs(e.Action, removedChildren), childrenCollection);
 					}
 					break;
 				case NotifyCollectionChangedAction.Replace:
@@ -143,8 +170,6 @@ namespace Eto.CustomControls
 		private void RemoveSection(int startRow)
 		{
 			var section = Sections.Single(s => s.StartRow == startRow);
-			
-			section.CollectionChanged -= OnStoreCollectionChanged;
 
 			// TODO Check sub-sections?
 			//for (int i = 0; i < section.Count; i++)
@@ -165,20 +190,27 @@ namespace Eto.CustomControls
 
 		public void InitializeItems (ITreeGridStore<ITreeGridItem> store)
 		{
-			treeDataStore.ClearCache();
 			if (sections != null)
 				sections.Clear ();
 			Store = store;
 
 			ResetSections();
-			ResetCollection ();
+
+			if (store is IList list)
+			{
+				//var list = store as IList ?? ((TreeGridItem) store).Children;
+				//var index = store is IList ? StartRow : StartRow + 1;
+				OnTriggerCollectionChanged(
+					new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, list, StartRow));
+			}
+
+			//ResetCollection();
 		}
 
 		void ResetSections()
 		{
 			foreach (var treeController in Sections)
 			{
-				treeController.CollectionChanged -= OnStoreCollectionChanged;
 				for (int i = 0; i < treeController.Count; i++)
 				{
 					var childTreeGridItem = treeController[i];
@@ -206,21 +238,11 @@ namespace Eto.CustomControls
 
 		public void ReloadData()
 		{
-			treeDataStore.ClearCache();
+			treeDataStore.Clear();
 			ResetSections();
 			ResetCollection();
 		}
-
-		internal void ClearCache()
-		{
-			countCache = null;
-
-			foreach (var section in Sections)
-			{
-				section.ClearCache();
-			}
-		}
-
+		
 		public int LevelAtRow (int row)
 		{
 			if (sections == null || sections.Count == 0)
@@ -387,7 +409,6 @@ namespace Eto.CustomControls
 					childController = new TreeController(treeDataStore, handler) { StartRow = row, parent = this };
 					childController.InitializeItems(children);
 					Sections.Add (childController);
-					// TODO notify rows moved and added
 				}
 			}
 			Sections.Sort ((x, y) => x.StartRow.CompareTo (y.StartRow));
@@ -401,16 +422,12 @@ namespace Eto.CustomControls
 
 		void NotifySectionExpanded(TreeController childController)
 		{
-			var parentRow = childController.StartRow;
-			var firstChildRow = parentRow + 1;
-			OnStoreCollectionChanged(treeDataStore, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, this[parentRow], this[parentRow], parentRow));
+			//var parentRow = childController.StartRow;
+			var firstChildRow = childController.StartRow + 1;
+			//OnStoreCollectionChanged(treeDataStore, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, this[parentRow], this[parentRow], parentRow));
+			ReloadItem(childController.Store as TreeGridItem);
 
-			var childItems = new List<ITreeGridItem>();
-			for (int i = firstChildRow; i < firstChildRow + childController.Count; i++)
-			{
-				childItems.Add(this[i]);
-			}
-			OnStoreCollectionChanged(treeDataStore, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, childItems, firstChildRow));
+			OnStoreCollectionChangedInternal(treeDataStore, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, (childController.Store as TreeGridItem).Children, firstChildRow));
 		}
 
 		bool ChildIsSelected (ITreeGridItem item)
@@ -478,7 +495,6 @@ namespace Eto.CustomControls
 				{
 					foreach (var treeController in Sections.Where(r => r.StartRow == row).ToArray())
 					{
-						treeController.CollectionChanged -= OnStoreCollectionChanged;
 						Sections.Remove(treeController);
 
                         NotifySectionCollapsed(treeController);
@@ -492,14 +508,14 @@ namespace Eto.CustomControls
 		{
 			var parentRow = treeController.StartRow;
 			var firstChildRow = parentRow + 1;
-			OnStoreCollectionChanged(treeDataStore, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, this[parentRow], this[parentRow], parentRow));
+			OnStoreCollectionChangedInternal(treeDataStore, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, this[parentRow], this[parentRow], parentRow));
 			
 			var childItems = new List<ITreeGridItem>();
 			for (int i = firstChildRow; i < firstChildRow + treeController.Count; i++)
 			{
 				childItems.Add(this[i]);
 			}
-			OnStoreCollectionChanged(treeDataStore, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, childItems, firstChildRow));
+			OnStoreCollectionChangedInternal(treeDataStore, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, childItems, firstChildRow));
 		}
 
 		public int Count
@@ -508,22 +524,15 @@ namespace Eto.CustomControls
 			{
 				if (Store == null)
 					return 0;
-				if (countCache != null)
-					return countCache.Value;
 				if (sections != null)
-					countCache = Store.Count + sections.Sum (r => r.Count);
-				else
-					countCache = Store.Count;
-				return countCache.Value;
+					return Store.Count + sections.Sum(r => r.Count);
+				return Store.Count;
 			}
 		}
 
-		public event NotifyCollectionChangedEventHandler CollectionChanged;
-
-		protected virtual void OnTriggerCollectionChanged (NotifyCollectionChangedEventArgs args)
+		protected virtual void OnTriggerCollectionChanged(NotifyCollectionChangedEventArgs args, ITreeGridStore<ITreeGridItem> source = null)
 		{
-			if (CollectionChanged != null)
-				CollectionChanged (this, args);
+			treeDataStore.UpdateCache(source ?? this, args);
 		}
 
 		static IEnumerable<ITreeGridItem> GetParents (ITreeGridItem value)
