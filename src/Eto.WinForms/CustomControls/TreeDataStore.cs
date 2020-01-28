@@ -10,12 +10,13 @@ namespace Eto.CustomControls
 {
 	public class TreeDataStore : ITreeGridStore<ITreeGridItem>, IList, INotifyCollectionChanged
 	{
-		private readonly ObservableCollection<ITreeGridItem> cache = new ObservableCollection<ITreeGridItem>();
+		private readonly ObservableCollection<ITreeGridItem> cache;
 		private readonly TreeController rootTreeController;
 
 		public TreeDataStore(ITreeHandler handler)
 		{
 			rootTreeController = new TreeController(this, handler);
+			cache = new ObservableCollection<ITreeGridItem>();
 			cache.CollectionChanged += (s, e) => OnTriggerCollectionChanged(e);
 		}
 
@@ -56,30 +57,6 @@ namespace Eto.CustomControls
 			}
 		}
 
-		/*
-		void NotifyCollectionChanged(NotifyCollectionChangedAction action, ITreeGridItem[] items)
-		{
-			if (action == NotifyCollectionChangedAction.Add)
-				ClearCache();
-
-			var rows = new int[items.Length];
-			for (int i = 0; i < items.Length; i++)
-			{
-				rows[i] = IndexOf(items[i]);
-			}
-
-			if (action == NotifyCollectionChangedAction.Remove)
-				ClearCache();
-
-			for (int i = 0; i < items.Length; i++)
-			{
-				if (rows[i] < 0)
-					continue;
-				OnTriggerCollectionChanged(new NotifyCollectionChangedEventArgs(action, items[i], rows[i]));
-			}
-		}
-		*/
-
 		public event EventHandler<TreeGridViewItemCancelEventArgs> Expanding;
 		public event EventHandler<TreeGridViewItemCancelEventArgs> Collapsing;
 		public event EventHandler<TreeGridViewItemEventArgs> Expanded;
@@ -107,11 +84,11 @@ namespace Eto.CustomControls
 		}
 
 
-		#region NotifyColllectionChanged implementation
+		#region INotifyColllectionChanged implementation
 
 		public event NotifyCollectionChangedEventHandler CollectionChanged;
 
-		protected virtual void OnTriggerCollectionChanged(NotifyCollectionChangedEventArgs args) => CollectionChanged?.Invoke(this, args);
+		protected void OnTriggerCollectionChanged(NotifyCollectionChangedEventArgs args) => CollectionChanged?.Invoke(this, args);
 
 		#endregion
 
@@ -142,16 +119,20 @@ namespace Eto.CustomControls
 
 		public void Clear()
 		{
+			// TODO Clear tree controllers recursively, then clearing the cache is not required
+			// NOTE It is actually used?
+			//rootTreeController.Clear();
 			cache.Clear();
 		}
 
 		public bool Contains(object value)
 		{
-			return true;
+			return cache.Contains(value);
 		}
 
 		public int IndexOf(object value)
 		{
+			/*
 			var item = value as ITreeGridItem;
 
 			var index = cache.IndexOf(item);
@@ -161,15 +142,16 @@ namespace Eto.CustomControls
 			}
 			for (int i = 0; i < Count; i++)
 			{
-				if (ReferenceEquals(this[i], item))
+				if (ReferenceEquals(this[i], item)) // TODO populate the cache
 					return i;
 			}
 			return -1;
+			*/
+			return cache.IndexOf(value as ITreeGridItem);
 		}
 
 		public void Insert(int index, object value)
 		{
-
 		}
 
 		public bool IsFixedSize
@@ -184,7 +166,6 @@ namespace Eto.CustomControls
 
 		public void Remove(object value)
 		{
-
 		}
 
 		public void RemoveAt(int index)
@@ -211,12 +192,11 @@ namespace Eto.CustomControls
 		{
 			for (int i = 0; i < Count; i++)
 			{
-				yield return rootTreeController[i];
+				yield return this[i];
 			}
 		}
 
 		#endregion
-
 
 		#region Facade methods
 
@@ -224,7 +204,6 @@ namespace Eto.CustomControls
 		{
 			Clear();
 			rootTreeController.InitializeItems(value);
-			///rootTreeController.CollectionChanged += UpdateCache;
 		}
 
 		public TreeController.TreeNode GetNodeAtRow(int row) => rootTreeController.GetNodeAtRow(row);
@@ -242,5 +221,10 @@ namespace Eto.CustomControls
 		public bool ExpandRow(int row) => rootTreeController.ExpandRow(row);
 
 		#endregion
+
+		public void FixRowNumbers()
+		{
+			rootTreeController.RefreshStartRow(0);
+		}
 	}
 }
