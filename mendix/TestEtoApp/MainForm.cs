@@ -27,6 +27,8 @@ namespace TestEtoApp
             layout.Items.Add(new Button(AddSiblingBelow) { Text = "Add Sibling Below" });
             layout.Items.Add(new Button(AddChild) { Text = "Add Child" });
             layout.Items.Add(new Button(Remove) { Text = "Remove" });
+            layout.Items.Add(new Button(ReassignDataStore){ Text = "Reassign DataStore" });
+           
 
             treeControl = new TreeGridView();
             treeControl.Columns.Add(new GridColumn
@@ -38,6 +40,12 @@ namespace TestEtoApp
             layout.Items.Add(treeControl);
 
             return layout;
+        }
+
+        private void ReassignDataStore(object sender, EventArgs e)
+        {
+            counter = 0;
+            treeControl.DataStore = GetItems();
         }
 
         void AddSiblingAbove(object sender, EventArgs e)
@@ -102,7 +110,6 @@ namespace TestEtoApp
 
         TreeGridItem CreateItem()
         {
-            
             var item = new TreeGridItem(new object[] { null, $"Item{counter++}" });
             //{
             //    Expanded = true
