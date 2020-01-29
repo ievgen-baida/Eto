@@ -26,6 +26,7 @@ namespace TestEtoApp
             layout.Items.Add(new Button(AddSiblingAbove) { Text = "Add Sibling Above" });
             layout.Items.Add(new Button(AddSiblingBelow) { Text = "Add Sibling Below" });
             layout.Items.Add(new Button(AddChild) { Text = "Add Child" });
+            layout.Items.Add(new Button(AddChildWithChildren) { Text = "Add Child With Children" });
             layout.Items.Add(new Button(Remove) { Text = "Remove" });
             layout.Items.Add(new Button(ReassignDataStore){ Text = "Reassign DataStore" });
            
@@ -83,6 +84,18 @@ namespace TestEtoApp
                 return;
 
             var newItem = CreateItem();
+            item.Children.Add(newItem);
+        }
+
+        private void AddChildWithChildren(object sender, EventArgs e)
+        {
+            var item = (TreeGridItem)treeControl.SelectedItem;
+            if (item == null)
+                return;
+
+            var newItem = CreateItem();
+            newItem.Children.Add(CreateItem());
+            newItem.Children.Add(CreateItem());
             item.Children.Add(newItem);
         }
 
