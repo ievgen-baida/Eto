@@ -37,7 +37,7 @@ namespace TestEtoApp
                 DataCell = new ImageTextCell(0, 1),
                 AutoSize = true
             });
-            treeControl.DataStore = GetItems();
+            treeControl.DataStore = GetItems(3);
             layout.Items.Add(treeControl);
 
             return layout;
@@ -46,7 +46,13 @@ namespace TestEtoApp
         private void ReassignDataStore(object sender, EventArgs e)
         {
             counter = 0;
-            treeControl.DataStore = GetItems();
+            var items = GetItems(5);
+            ((TreeGridItem)items[2]).Children.Add(CreateItem());
+            var midItem = CreateItem();
+            midItem.Children.Add(CreateItem());
+            ((TreeGridItem)items[2]).Children.Add(midItem);
+            ((TreeGridItem)items[2]).Children.Add(CreateItem());
+            treeControl.DataStore = items;
         }
 
         void AddSiblingAbove(object sender, EventArgs e)
@@ -111,11 +117,11 @@ namespace TestEtoApp
             collection.Remove(item);
         }
 
-        TreeGridItemCollection GetItems()
+        TreeGridItemCollection GetItems(int items)
         {
             treeItems = new TreeGridItemCollection();
 
-            for (var i = 0; i < 3; i++)
+            for (var i = 0; i < items; i++)
                 treeItems.Add(CreateItem());
 
             return treeItems;
