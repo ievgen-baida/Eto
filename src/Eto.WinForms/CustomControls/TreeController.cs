@@ -189,11 +189,11 @@ namespace Eto.CustomControls
 			UpdateDataStore(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, item, item));
 		}
 
-		public void InitializeItems (ITreeGridStore<ITreeGridItem> store, bool doNotify)
+		public void InitializeItems (ITreeGridStore<ITreeGridItem> store, bool notifyAll, int notifyRow = -1)
 		{
 			Store = store;
 
-			if (doNotify)
+			if (notifyAll || StartRow == notifyRow)
 			{
 				IList list = new List<ITreeGridItem>();
 				for (int i = 0; i < store.Count; i++)
@@ -206,8 +206,7 @@ namespace Eto.CustomControls
 						parent == null && StartRow == 0 ? StartRow : StartRow + 1));
 			}
 
-			ResetSections(false);
-			//ResetCollection();
+			ResetSections(notifyAll, notifyRow);
 		}
 
 		internal void ResetSections(bool notifyAll, int notifyRow = -1)
@@ -215,7 +214,7 @@ namespace Eto.CustomControls
 			Sections.Clear();
 			if (Store != null)
 			{
-				var realRow = 0;
+				var realRow = StartRow == 0 ? 0 : StartRow + 1;
 				for (int index = 0; index < Store.Count; index++, realRow++)
 				{
 					var item = Store[index];
@@ -223,7 +222,7 @@ namespace Eto.CustomControls
 					{
 						var children = (ITreeGridStore<ITreeGridItem>)item;
 						var section = new TreeController(treeDataStore, handler) { StartRow = realRow, parent = this };
-						section.InitializeItems(children, notifyAll || realRow == notifyRow);
+						section.InitializeItems(children, notifyAll, notifyRow);
 						Sections.Add(section);
 						realRow += section.Count;
 					}
