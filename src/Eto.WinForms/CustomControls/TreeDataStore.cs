@@ -20,7 +20,7 @@ namespace Eto.CustomControls
 			cache.CollectionChanged += (s, e) => OnTriggerCollectionChanged(e);
 		}
 
-		internal void UpdateCache(ITreeGridStore<ITreeGridItem> source, NotifyCollectionChangedEventArgs e)
+		internal void UpdateCache(NotifyCollectionChangedEventArgs e)
 		{
 			switch (e.Action)
 			{
@@ -203,7 +203,7 @@ namespace Eto.CustomControls
 		public void InitializeItems(ITreeGridStore<ITreeGridItem> value)
 		{
 			Clear();
-			rootTreeController.InitializeItems(value);
+			rootTreeController.InitializeItems(value, true);
 		}
 
 		public TreeController.TreeNode GetNodeAtRow(int row) => rootTreeController.GetNodeAtRow(row);
@@ -224,7 +224,7 @@ namespace Eto.CustomControls
 
 		public void FixRowNumbers()
 		{
-			rootTreeController.RefreshStartRow(0);
+			rootTreeController.ResetSections(false);
 		}
 	}
 }
