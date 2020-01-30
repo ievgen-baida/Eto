@@ -29,7 +29,7 @@ namespace TestEtoApp
             layout.Items.Add(new Button(AddChildWithChildren) { Text = "Add Child With Children" });
             layout.Items.Add(new Button(Remove) { Text = "Remove" });
             layout.Items.Add(new Button(ReassignDataStore){ Text = "Reassign DataStore" });
-           
+            layout.Items.Add(new Button(ReloadData) { Text = "ReloadData" });
 
             treeControl = new TreeGridView();
             treeControl.Columns.Add(new GridColumn
@@ -41,6 +41,11 @@ namespace TestEtoApp
             layout.Items.Add(treeControl);
 
             return layout;
+        }
+
+        private void ReloadData(object sender, EventArgs e)
+        {
+            treeControl.ReloadData();
         }
 
         private void ReassignDataStore(object sender, EventArgs e)
