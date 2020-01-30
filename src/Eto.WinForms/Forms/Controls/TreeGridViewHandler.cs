@@ -108,7 +108,7 @@ namespace Eto.WinForms.Forms.Controls
 
 		public ITreeGridStore<ITreeGridItem> DataStore
 		{
-			get { return dataStore.Store; }
+			get { return dataStore; }
 			set
 			{
 				dataStore.InitializeItems(value);

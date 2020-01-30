@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
@@ -11,11 +10,11 @@ namespace Eto.CustomControls
 	public class TreeDataStore : ITreeGridStore<ITreeGridItem>, IList, INotifyCollectionChanged
 	{
 		private readonly ObservableCollection<ITreeGridItem> cache;
-		private readonly TreeController rootTreeController;
+		private readonly TreeController controller;
 
 		public TreeDataStore(ITreeHandler handler)
 		{
-			rootTreeController = new TreeController(this, handler);
+			controller = new TreeController(this, handler);
 			cache = new ObservableCollection<ITreeGridItem>();
 			cache.CollectionChanged += (s, e) => OnTriggerCollectionChanged(e);
 		}
@@ -65,34 +64,32 @@ namespace Eto.CustomControls
 		// TODO access modifier
 		internal void OnExpanding(TreeGridViewItemCancelEventArgs e)
 		{
-			if (Expanding != null) Expanding(this, e);
+			Expanding?.Invoke(this, e);
 		}
 	
 		internal void OnCollapsing(TreeGridViewItemCancelEventArgs e)
 		{
-			if (Collapsing != null) Collapsing(this, e);
+			Collapsing?.Invoke(this, e);
 		}
 
 		internal void OnExpanded(TreeGridViewItemEventArgs e)
 		{
-			if (Expanded != null) Expanded(this, e);
+			Expanded?.Invoke(this, e);
 		}
 
 		internal void OnCollapsed(TreeGridViewItemEventArgs e)
 		{
-			if (Collapsed != null) Collapsed(this, e);
+			Collapsed?.Invoke(this, e);
 		}
 
-
-		#region INotifyColllectionChanged implementation
+		#region INotifyCollectionChanged implementation
 
 		public event NotifyCollectionChangedEventHandler CollectionChanged;
 
 		protected void OnTriggerCollectionChanged(NotifyCollectionChangedEventArgs args) => CollectionChanged?.Invoke(this, args);
 
 		#endregion
-
-
+		
 		#region ITreeGridStore<ITreeGridItem> implementation
 
 		public ITreeGridItem this[int row] => cache[row];
@@ -108,7 +105,6 @@ namespace Eto.CustomControls
 			get { return this[index]; }
 			set
 			{
-
 			}
 		}
 
@@ -132,21 +128,6 @@ namespace Eto.CustomControls
 
 		public int IndexOf(object value)
 		{
-			/*
-			var item = value as ITreeGridItem;
-
-			var index = cache.IndexOf(item);
-			if (index >= 0)
-			{
-				return index;
-			}
-			for (int i = 0; i < Count; i++)
-			{
-				if (ReferenceEquals(this[i], item)) // TODO populate the cache
-					return i;
-			}
-			return -1;
-			*/
 			return cache.IndexOf(value as ITreeGridItem);
 		}
 
@@ -161,7 +142,7 @@ namespace Eto.CustomControls
 
 		public bool IsReadOnly
 		{
-			get { return false; }
+			get { return true; }
 		}
 
 		public void Remove(object value)
@@ -170,7 +151,6 @@ namespace Eto.CustomControls
 
 		public void RemoveAt(int index)
 		{
-
 		}
 
 		public void CopyTo(Array array, int index)
@@ -202,29 +182,29 @@ namespace Eto.CustomControls
 
 		public void InitializeItems(ITreeGridStore<ITreeGridItem> value)
 		{
-			Clear();
-			rootTreeController.InitializeItems(value, true);
+			cache.Clear();
+			controller.InitializeItems(value, true);
 		}
 
-		public TreeController.TreeNode GetNodeAtRow(int row) => rootTreeController.GetNodeAtRow(row);
+		public TreeController.TreeNode GetNodeAtRow(int row) => controller.GetNodeAtRow(row);
 
-		public void ExpandToItem(ITreeGridItem value) => rootTreeController.ExpandToItem(value);
+		public void ExpandToItem(ITreeGridItem value) => controller.ExpandToItem(value);
 
-		public void ReloadData() => rootTreeController.ReloadData();
+		public void ReloadData() => controller.ReloadData();
 
-		public int LevelAtRow(int row) => rootTreeController.LevelAtRow(row);
+		public int LevelAtRow(int row) => controller.LevelAtRow(row);
 
-		public bool CollapseRow(int row) => rootTreeController.CollapseRow(row);
+		public bool CollapseRow(int row) => controller.CollapseRow(row);
 
-		public bool IsExpanded(int row) => rootTreeController.IsExpanded(row);
+		public bool IsExpanded(int row) => controller.IsExpanded(row);
 
-		public bool ExpandRow(int row) => rootTreeController.ExpandRow(row);
+		public bool ExpandRow(int row) => controller.ExpandRow(row);
 
 		#endregion
 
-		public void FixRowNumbers()
+		public void RebuildRows()
 		{
-			rootTreeController.ResetSections(false);
+			controller.ResetSections(false);
 		}
 	}
 }
