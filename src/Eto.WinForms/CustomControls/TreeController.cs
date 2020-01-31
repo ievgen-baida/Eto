@@ -63,23 +63,9 @@ namespace Eto.CustomControls
 			get => store;
 			set
 			{
-                if (store is ObservableCollection<ITreeGridItem> oldCollection)
-                {
-	                oldCollection.CollectionChanged -= OnStoreCollectionChanged;
-					foreach (var item in oldCollection.Cast<TreeGridItem>())
-	                {
-		                item.Children.CollectionChanged -= OnChildrenCollectionChanged;
-	                }
-				}
-				if (value is ObservableCollection<ITreeGridItem> newCollection)
-				{
-					newCollection.CollectionChanged += OnStoreCollectionChanged;
-					foreach (var item in newCollection.Cast<TreeGridItem>())
-					{
-						item.Children.CollectionChanged += OnChildrenCollectionChanged;
-					}
-				}
+				DetachEvents();
 				store = value;
+				AttachEvents(value);
 			}
 		}
 
@@ -213,6 +199,7 @@ namespace Eto.CustomControls
 
 		internal void ResetSections(bool notifyAll, int notifyRow = -1)
 		{
+			DetachEvents();
 			Sections.Clear();
 			if (Store != null)
 			{
@@ -230,6 +217,43 @@ namespace Eto.CustomControls
 					}
 				}
 			}
+		}
+
+		private void DetachEvents()
+		{
+			// Keep events only on Store and only in the root tree controller
+			if (parent != null)
+			{
+				if (store is ObservableCollection<ITreeGridItem> observableStoreCollection)
+				{
+					observableStoreCollection.CollectionChanged -= OnStoreCollectionChanged;
+					foreach (var item in observableStoreCollection.Cast<TreeGridItem>())
+					{
+						item.Children.CollectionChanged -= OnChildrenCollectionChanged;
+					}
+				}
+			}
+
+			if (sections != null && sections.Count > 0)
+			{
+				foreach (var section in sections)
+				{
+					section.DetachEvents();
+				}
+			}
+		}
+
+		private void AttachEvents(IDataStore<ITreeGridItem> value)
+		{
+			if (value is TreeGridItemCollection collection) AttachEventsInternal(collection);
+			if (value is TreeGridItem treeGridItem) AttachEventsInternal(treeGridItem.Children);
+		}
+
+		private void AttachEventsInternal(ObservableCollection<ITreeGridItem> storeCollection)
+		{
+			storeCollection.CollectionChanged += OnStoreCollectionChanged;
+			foreach (var item in storeCollection.Cast<TreeGridItem>())
+				item.Children.CollectionChanged += OnChildrenCollectionChanged;
 		}
 
 		public void ReloadData()
