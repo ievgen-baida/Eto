@@ -482,6 +482,14 @@ namespace Eto.CustomControls
 
 		void CollapseSection (int row)
 		{
+			var section = FindSection(row);
+
+			if (section != null)
+			{
+				Sections.Remove(section);
+				OnSectionRemoved(section);
+			}
+			/*
 			if (sections != null && sections.Count > 0)
 			{
 				bool addTop = true;
@@ -499,13 +507,39 @@ namespace Eto.CustomControls
 					}
 				}
 
-				if (addTop && row < Store.Count)
+				if (addTop && row >= StartRow && row <= StartRow + Store.Count)
 				{
 					var section = Sections.Single(r => r.StartRow == row);
 					Sections.Remove(section);
 					OnSectionRemoved(section);
 				}
 			}
+			*/
+		}
+
+		TreeController FindSection(int row)
+		{
+			if (sections != null && sections.Count > 0)
+			{
+				foreach (var section in sections)
+				{
+					if (row <= section.StartRow)
+					{
+						break;
+					}
+					if (row <= section.StartRow + section.Count)
+					{
+						return FindSection(row);
+					}
+				}
+
+				if (row >= StartRow && row <= StartRow + Store.Count)
+				{
+					return Sections.SingleOrDefault(r => r.StartRow == row);
+				}
+			}
+
+			return null;
 		}
 
 		public int Count
