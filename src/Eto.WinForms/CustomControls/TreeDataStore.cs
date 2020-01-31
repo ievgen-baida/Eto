@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Linq;
 using Eto.Forms;
 
@@ -19,41 +20,93 @@ namespace Eto.CustomControls
 			cache.CollectionChanged += (s, e) => OnTriggerCollectionChanged(e);
 		}
 
-		internal void UpdateCache(NotifyCollectionChangedEventArgs e)
+		internal void Refresh(bool force = false)
 		{
-			switch (e.Action)
+			// Reset/Clear
+			if (force)
 			{
-				case NotifyCollectionChangedAction.Add:
-					var index = e.NewStartingIndex;
-					foreach (var item in e.NewItems.Cast<ITreeGridItem>())
-					{
-						cache.Insert(index++, item);
-					}
-					break;
-				case NotifyCollectionChangedAction.Remove:
-					// TODO use OldStartingIndex? from the end
-					foreach (var item in e.OldItems.Cast<ITreeGridItem>())
-					{
-						cache.Remove(item);
-					}
-					break;
-				case NotifyCollectionChangedAction.Reset:
-					OnTriggerCollectionChanged(e);
-					break;
-				case NotifyCollectionChangedAction.Replace:
-					for (int i = 0; i < e.NewItems.Count; i++)
-					{
-						int row = IndexOf(e.OldItems[i]);
-						cache.RemoveAt(row);
-						cache.Insert(row, (ITreeGridItem)e.NewItems[i]);
-					}
-					break;
-				case NotifyCollectionChangedAction.Move:
-					OnTriggerCollectionChanged(e);
-					break;
-				default:
-					throw new ArgumentOutOfRangeException();
+				Debug.WriteLine("Clear");
+				cache.Clear();
 			}
+
+			controller.ResetSections();
+
+			int count = controller.Count;
+			var items = new ITreeGridItem[count];
+			for (int index = 0; index < count; index++)
+			{
+				items[index] = controller[index];
+			}
+
+			for (int index = 0; index < items.Length; index++)
+			{
+				var item = items[index];
+
+				// Add
+				if (index == cache.Count)
+				{
+					Debug.WriteLine($"Add at {index}");
+					cache.Insert(index, item);
+					continue;
+				}
+
+				var cachedItemAtIndex = cache[index];
+				if (ReferenceEquals(item, cachedItemAtIndex))
+				{
+					continue;
+				}
+
+				// Remove
+				if (!items.Contains(cachedItemAtIndex))
+				{
+					Debug.WriteLine($"Remove at {index}");
+					cache.RemoveAt(index);
+				}
+
+				int itemIndexInCache = cache.IndexOf(item);
+
+				// Insert
+				if (itemIndexInCache == -1)
+				{
+					Debug.WriteLine($"Insert at {index}");
+					cache.Insert(index, item);
+					continue;
+				}
+
+				// Move
+				if (itemIndexInCache != index)
+				{
+					Debug.WriteLine($"Move from {itemIndexInCache} to {index}");
+					cache.Move(itemIndexInCache, index);
+				}
+			}
+
+			// Trim
+			while (cache.Count > count)
+			{
+				Debug.WriteLine($"Trim at {cache.Count - 1}");
+				cache.RemoveAt(cache.Count - 1);
+			}
+
+			// Temp: Consistency check
+			for (int index = 0; index < items.Length; index++)
+			{
+				if (!ReferenceEquals(cache[index], items[index]))
+					throw new ApplicationException($"Mismatch at index {index}.");
+			}
+
+			Debug.WriteLine("Refresh completed.");
+		}
+
+		internal void RefreshItem(ITreeGridItem item)
+		{
+			if (item == null) return;
+
+			int row = IndexOf(item);
+			if (row == -1) return;
+
+			cache.RemoveAt(row);
+			cache.Insert(row, item);
 		}
 
 		public event EventHandler<TreeGridViewItemCancelEventArgs> Expanding;
@@ -86,7 +139,7 @@ namespace Eto.CustomControls
 
 		public event NotifyCollectionChangedEventHandler CollectionChanged;
 
-		protected void OnTriggerCollectionChanged(NotifyCollectionChangedEventArgs args) => CollectionChanged?.Invoke(this, args);
+		void OnTriggerCollectionChanged(NotifyCollectionChangedEventArgs args) => CollectionChanged?.Invoke(this, args);
 
 		#endregion
 		
@@ -115,10 +168,6 @@ namespace Eto.CustomControls
 
 		public void Clear()
 		{
-			// TODO Clear tree controllers recursively, then clearing the cache is not required
-			// NOTE It is actually used?
-			//rootTreeController.Clear();
-			cache.Clear();
 		}
 
 		public bool Contains(object value)
@@ -182,8 +231,8 @@ namespace Eto.CustomControls
 
 		public void InitializeItems(ITreeGridStore<ITreeGridItem> value)
 		{
-			cache.Clear();
-			controller.InitializeItems(value, true);
+			controller.InitializeItems(value);
+			Refresh(force: true);
 		}
 
 		public TreeController.TreeNode GetNodeAtRow(int row) => controller.GetNodeAtRow(row);
@@ -201,10 +250,5 @@ namespace Eto.CustomControls
 		public bool ExpandRow(int row) => controller.ExpandRow(row);
 
 		#endregion
-
-		public void RebuildSections()
-		{
-			controller.ResetSections(false);
-		}
 	}
 }
