@@ -202,7 +202,7 @@ namespace Eto.CustomControls
 
 		#endregion
 
-		public void RebuildRows()
+		public void RebuildSections()
 		{
 			controller.ResetSections(false);
 		}

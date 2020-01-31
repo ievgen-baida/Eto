@@ -46,15 +46,15 @@ namespace Eto.CustomControls
 
 		private void OnSectionRemoved(TreeController removedSection)
 		{
-			treeDataStore.RebuildRows();
+			ReloadItem(GetItemAtRow(removedSection.StartRow));
+
+			treeDataStore.RebuildSections();
 
 			var removedItems = new List<ITreeGridItem>();
 			for (int row = 0; row < removedSection.Count; row++)
 			{
 				removedItems.Add(removedSection.GetItemAtRow(row));
 			}
-
-			ReloadItem(GetItemAtRow(removedSection.StartRow));
 			treeDataStore.UpdateCache(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, removedItems));
 		}
 
@@ -74,7 +74,7 @@ namespace Eto.CustomControls
 			switch (e.Action)
 			{
 				case NotifyCollectionChangedAction.Add:
-					treeDataStore.RebuildRows();
+					treeDataStore.RebuildSections();
 					var newStartingIndex = IndexOf(e.NewItems.Cast<ITreeGridItem>().First());
 					foreach (var newItem in e.NewItems.Cast<TreeGridItem>())
 						newItem.Children.CollectionChanged += OnChildrenCollectionChanged;
@@ -83,7 +83,7 @@ namespace Eto.CustomControls
 						newStartingIndex);
 					break;
 				case NotifyCollectionChangedAction.Remove:
-					treeDataStore.RebuildRows();
+					treeDataStore.RebuildSections();
 					var removedItems = new List<TreeGridItem>();
 					foreach (var oldItem in e.OldItems.Cast<TreeGridItem>())
 					{
@@ -124,30 +124,57 @@ namespace Eto.CustomControls
 
 		void OnChildrenCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
 		{
-			treeDataStore.RebuildRows();
-			
 			switch (e.Action)
 			{
 				case NotifyCollectionChangedAction.Add:
-					foreach (var newItem in e.NewItems.Cast<ITreeGridItem>().ToArray())
+					var addedItem = e.NewItems.Cast<TreeGridItem>().Single();
+					addedItem.Children.CollectionChanged += OnChildrenCollectionChanged;
+					if ((addedItem.Parent as TreeGridItem)?.Children?.Count == 1)
+						ReloadItem(addedItem.Parent);
+					if (IsExpanded(addedItem.Parent))
 					{
-						if ((newItem.Parent as TreeGridItem)?.Children?.Count == e.NewItems.Count)
-							ReloadItem(newItem.Parent);
-						if (GetParents(newItem).All(item => item.Expanded))
+						treeDataStore.RebuildSections();
+						var row = IndexOf(addedItem);
+						treeDataStore.UpdateCache(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, addedItem, row));
+
+						// Added child that contains own expanded children
+
+						var addedChildrenItems = CollectVisibleChildren(addedItem).ToArray();
+						treeDataStore.UpdateCache(
+							new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, addedChildrenItems,
+								row + 1));
+						/*
+						var section = FindSection(row);
+						if (section != null)
 						{
-							var row = IndexOf(newItem);
-							treeDataStore.UpdateCache(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, newItem, row));
+							IList addedChildren = new List<ITreeGridItem>();
+							for (int i = 0; i < section.Count; i++)
+							{
+								addedChildren.Add(section[i]);
+							}
+							treeDataStore.UpdateCache(
+								new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, addedChildren,
+									row + 1));
 						}
+						*/
+					}
+					break;
+				case NotifyCollectionChangedAction.Remove: // Remove or Collapse
+					var removedItem = e.OldItems.Cast<TreeGridItem>().Single();
+					removedItem.Children.CollectionChanged -= OnChildrenCollectionChanged;
+					if ((removedItem.Parent as TreeGridItem)?.Children?.Count == 0)
+						ReloadItem(removedItem.Parent);
+					if (IsExpanded(removedItem.Parent))
+					{
+						treeDataStore.UpdateCache(
+							new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, removedItem));
+						
+						var removedChildrenItems = CollectVisibleChildren(removedItem).ToArray();
+						if (removedChildrenItems.Any())
+							treeDataStore.UpdateCache(
+								new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, removedChildrenItems));
 					}
 
-					break;
-				case NotifyCollectionChangedAction.Remove:
-					foreach (var removedItem in e.OldItems.Cast<ITreeGridItem>().ToArray())
-					{
-						ReloadItem(removedItem.Parent);
-						if (GetParents(removedItem).All(item => item.Expanded))
-							treeDataStore.UpdateCache(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, removedItem));
-					}
 					break;
 				case NotifyCollectionChangedAction.Replace:
 					break;
@@ -158,6 +185,19 @@ namespace Eto.CustomControls
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
+		}
+
+		IEnumerable<ITreeGridItem> CollectVisibleChildren(ITreeGridItem parentItem)
+		{
+			if (parentItem.Expanded)
+				foreach (var child in ((TreeGridItem)parentItem).Children)
+				{
+					yield return child;
+					foreach (var child2 in CollectVisibleChildren(child))
+					{
+						yield return child2;
+					}
+				}
 		}
 
 		int IndexOf(object value)
@@ -384,6 +424,11 @@ namespace Eto.CustomControls
 			return false;
 		}
 
+		bool IsExpanded(ITreeGridItem value)
+		{
+			return value.Expanded && GetParents(value).All(item => item.Expanded);
+		}
+
 		public bool ExpandRow (int row)
 		{
 			var args = new TreeGridViewItemCancelEventArgs(GetItemAtRow(row));
@@ -413,7 +458,7 @@ namespace Eto.CustomControls
 		{
 			if (parent == null)
 				handler.PreResetTree ();
-			treeDataStore.UpdateCache (new NotifyCollectionChangedEventArgs (NotifyCollectionChangedAction.Reset));
+			treeDataStore.UpdateCache(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
 			if (parent == null)
 				handler.PostResetTree ();
 		}
