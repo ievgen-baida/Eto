@@ -28,6 +28,7 @@ namespace TestEtoApp
             layout.Items.Add(new Button(AddChild) { Text = "Add Child" });
             layout.Items.Add(new Button(AddChildWithChildren) { Text = "Add Child With Children" });
             layout.Items.Add(new Button(Remove) { Text = "Remove" });
+            layout.Items.Add(new Button(RemoveChildren) { Text = "Remove Children" });
             layout.Items.Add(new Button(ReassignDataStore){ Text = "Reassign DataStore" });
             layout.Items.Add(new Button(ReloadData) { Text = "ReloadData" });
 
@@ -43,6 +44,19 @@ namespace TestEtoApp
             return layout;
         }
 
+        private void RemoveChildren(object sender, EventArgs e)
+        {
+            var item = (TreeGridItem)treeControl.SelectedItem;
+            if (item == null)
+                return;
+
+            while (item.Children.Count > 0)
+            {
+                item.Children.RemoveAt(0);
+            }
+            //item.Children.Clear();
+        }
+
         private void ReloadData(object sender, EventArgs e)
         {
             treeControl.ReloadData();
@@ -54,6 +68,7 @@ namespace TestEtoApp
             var items = GetItems(5);
             ((TreeGridItem)items[2]).Children.Add(CreateItem());
             var midItem = CreateItem();
+            midItem.Expanded = true;
             midItem.Children.Add(CreateItem());
             ((TreeGridItem)items[2]).Children.Add(midItem);
             ((TreeGridItem)items[2]).Children.Add(CreateItem());
@@ -105,6 +120,7 @@ namespace TestEtoApp
                 return;
 
             var newItem = CreateItem();
+            newItem.Expanded = true;
             newItem.Children.Add(CreateItem());
             newItem.Children.Add(CreateItem());
             item.Children.Add(newItem);
