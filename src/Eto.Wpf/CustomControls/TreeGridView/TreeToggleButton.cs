@@ -3,17 +3,16 @@ using System.Windows.Controls.Primitives;
 using System.Windows;
 using Eto.Forms;
 using System.Windows.Controls;
-using Eto.CustomControls;
 
 namespace Eto.Wpf.CustomControls.TreeGridView
 {
 	public class TreeToggleButton : ToggleButton
 	{
-		public const int LevelWidth = 16;
+		const int LevelWidth = 16;
 
-		public TreeDataStore DataStore { get; set; }
+		TreeDataStore DataStore { get; set; }
 
-		public ITreeGridItem Item { get; private set; }
+		ITreeGridItem Item { get; set; }
 
 		static TreeToggleButton ()
 		{
@@ -52,7 +51,7 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 			e.Handled = true;
 		}
 
-		public void Configure (ITreeGridItem item)
+		void Configure (ITreeGridItem item)
 		{
 			Item = item;
 			var index = DataStore.IndexOf(item);

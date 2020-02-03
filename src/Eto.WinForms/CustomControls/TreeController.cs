@@ -1,8 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Collections.Specialized;
 using Eto.Forms;
-using System.Collections.ObjectModel;
+using System.Collections;
 
 namespace Eto.CustomControls
 {
@@ -16,104 +17,67 @@ namespace Eto.CustomControls
 		void PostResetTree ();
 	}
 
-	public class TreeController : ITreeGridStore<ITreeGridItem>
+	public class TreeController : ITreeGridStore<ITreeGridItem>, IList, INotifyCollectionChanged
 	{
-		readonly TreeDataStore treeDataStore;
-		readonly ITreeHandler handler;
-
+		readonly Dictionary<int, ITreeGridItem> cache = new Dictionary<int, ITreeGridItem> ();
+		int? countCache;
 		List<TreeController> sections;
 		TreeController parent;
-		ITreeGridStore<ITreeGridItem> store;
 
-		internal TreeController(TreeDataStore treeDataStore, ITreeHandler handler)
-		{
-			this.treeDataStore = treeDataStore;
-			this.handler = handler;
-		}
-
-		int StartRow { get; set; }
+		protected int StartRow { get; private set; }
 
 		List<TreeController> Sections
 		{
 			get
 			{
-				if (sections == null) sections = new List<TreeController>();
+				if (sections == null) sections = new List<TreeController> ();
 				return sections;
 			}
 		}
 
-		ITreeGridStore<ITreeGridItem> Store
+		public ITreeGridStore<ITreeGridItem> Store { get; private set; }
+
+		public ITreeHandler Handler { get; set; }
+
+		public event EventHandler<TreeGridViewItemCancelEventArgs> Expanding;
+		public event EventHandler<TreeGridViewItemCancelEventArgs> Collapsing;
+		public event EventHandler<TreeGridViewItemEventArgs> Expanded;
+		public event EventHandler<TreeGridViewItemEventArgs> Collapsed;
+
+		protected virtual void OnExpanding (TreeGridViewItemCancelEventArgs e)
 		{
-			get => store;
-			set
-			{
-				DetachEvents(force: true);
-				store = value;
-				AttachEvents(value);
-			}
+			if (Expanding != null) Expanding (this, e);
 		}
 
-		void OnStoreCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+		protected virtual void OnCollapsing (TreeGridViewItemCancelEventArgs e)
 		{
-			switch (e.Action)
-			{
-				case NotifyCollectionChangedAction.Add:
-					foreach (var newItem in e.NewItems.Cast<TreeGridItem>())
-						newItem.Children.CollectionChanged += OnChildrenCollectionChanged;
-					break;
-				case NotifyCollectionChangedAction.Remove:
-					foreach (var oldItem in e.OldItems.Cast<TreeGridItem>())
-						oldItem.Children.CollectionChanged -= OnChildrenCollectionChanged;
-					break;
-				case NotifyCollectionChangedAction.Replace:
-				case NotifyCollectionChangedAction.Move:
-					break;
-				case NotifyCollectionChangedAction.Reset:
-					ResetCollection();
-					return;
-			}
-
-			treeDataStore.Refresh();
-		}
-		void OnChildrenCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
-		{
-			switch (e.Action)
-			{
-				case NotifyCollectionChangedAction.Add:
-					var addedItem = e.NewItems.Cast<TreeGridItem>().Single();
-					if ((addedItem.Parent as TreeGridItem)?.Children?.Count == 1)
-						ReloadItem(addedItem.Parent);
-					break;
-				case NotifyCollectionChangedAction.Remove: // Remove or Collapse
-					var removedItem = e.OldItems.Cast<TreeGridItem>().Single();
-					if ((removedItem.Parent as TreeGridItem)?.Children?.Count == 0)
-						ReloadItem(removedItem.Parent);
-					break;
-				case NotifyCollectionChangedAction.Replace:
-				case NotifyCollectionChangedAction.Move:
-				case NotifyCollectionChangedAction.Reset: // Clear
-					// No need to refresh TreeDataStore here.
-					// If children are visible they will be the part of the other TreeController's Store and
-					// will be processed in its OnStoreCollectionChanged handler
-					break;
-			}
+			if (Collapsing != null) Collapsing (this, e);
 		}
 
-		void ReloadItem(ITreeGridItem item)
+		protected virtual void OnExpanded (TreeGridViewItemEventArgs e)
 		{
-			treeDataStore.RefreshItem(item);
+			if (Expanded != null) Expanded (this, e);
 		}
 
-		public void InitializeItems(ITreeGridStore<ITreeGridItem> items)
+		protected virtual void OnCollapsed (TreeGridViewItemEventArgs e)
 		{
-			Store = items;
-			if (parent != null) ResetSections();
+			if (Collapsed != null) Collapsed (this, e);
 		}
 
-		internal void ResetSections()
+		public void InitializeItems (ITreeGridStore<ITreeGridItem> store)
 		{
-			DetachEvents(force: false);
-			sections?.Clear();
+			ClearCache ();
+			if (sections != null)
+				sections.Clear ();
+			Store = store;
+
+			ResetSections();
+			ResetCollection ();
+		}
+
+		void ResetSections()
+		{
+			Sections.Clear();
 			if (Store != null)
 			{
 				for (int row = 0; row < Store.Count; row++)
@@ -122,7 +86,7 @@ namespace Eto.CustomControls
 					if (item.Expanded)
 					{
 						var children = (ITreeGridStore<ITreeGridItem>)item;
-						var section = new TreeController(treeDataStore, handler) { StartRow = row, parent = this };
+						var section = new TreeController { StartRow = row, Handler = Handler, parent = this };
 						section.InitializeItems(children);
 						Sections.Add(section);
 					}
@@ -130,59 +94,40 @@ namespace Eto.CustomControls
 			}
 		}
 
-		private void DetachEvents(bool force)
-		{
-			// Keep events only on Store and only in the root tree controller, unless Store is reassigned
-			if (force)
-			{
-				ObservableCollection<ITreeGridItem> storeCollection = null;
-				if (store is TreeGridItemCollection collection) storeCollection = collection;
-				if (store is TreeGridItem treeGridItem) storeCollection = treeGridItem.Children;
-
-				if (storeCollection != null)
-				{
-					storeCollection.CollectionChanged -= OnStoreCollectionChanged;
-					foreach (var item in storeCollection.Cast<TreeGridItem>())
-						item.Children.CollectionChanged -= OnChildrenCollectionChanged;
-				}
-			}
-
-			if (sections != null && sections.Count > 0)
-			{
-				foreach (var section in sections)
-				{
-					section.DetachEvents(force: true);
-				}
-			}
-		}
-
-		private void AttachEvents(IDataStore<ITreeGridItem> value)
-		{
-			ObservableCollection<ITreeGridItem> storeCollection = null;
-			if (value is TreeGridItemCollection collection) storeCollection = collection;
-			if (value is TreeGridItem treeGridItem) storeCollection = treeGridItem.Children;
-
-			if (storeCollection != null)
-			{
-				storeCollection.CollectionChanged += OnStoreCollectionChanged;
-				foreach (var item in storeCollection.Cast<TreeGridItem>())
-					item.Children.CollectionChanged += OnChildrenCollectionChanged;
-			}
-		}
-
 		public void ReloadData()
 		{
+			ClearCache();
+			ResetSections();
 			ResetCollection();
 		}
 
-		public int LevelAtRow(int row)
+		void ClearCache ()
+		{
+			countCache = null;
+			cache.Clear ();
+		}
+
+		public int IndexOf (ITreeGridItem item)
+		{
+			if (cache.ContainsValue(item))
+			{
+				var found = cache.First(r => ReferenceEquals(item, r.Value));
+				return found.Key;
+			}
+			for (int i = 0; i < Count; i++)
+			{
+				if (ReferenceEquals(this[i], item))
+					return i;
+			}
+			return -1;
+		}
+
+		public int LevelAtRow (int row)
 		{
 			if (sections == null || sections.Count == 0)
 				return 0;
-			foreach (var section in sections)
-			{
-				if (row <= section.StartRow)
-				{
+			foreach (var section in sections) {
+				if (row <= section.StartRow) {
 					return 0;
 				}
 				else
@@ -198,7 +143,18 @@ namespace Eto.CustomControls
 			return 0;
 		}
 
-		public ITreeGridItem this[int row] => GetItemAtRow(row);
+		public ITreeGridItem this[int row]
+		{
+			get
+			{
+				ITreeGridItem item;
+				if (!cache.TryGetValue (row, out item)) {
+					item = GetItemAtRow (row);
+					cache[row] = item;
+				}
+				return item;
+			}
+		}
 
 		public class TreeNode
 		{
@@ -251,15 +207,15 @@ namespace Eto.CustomControls
 			return node;
 		}
 
-		ITreeGridItem GetItemAtRow(int row)
+
+		ITreeGridItem GetItemAtRow (int row)
 		{
 			if (Store == null) return null;
 
 			ITreeGridItem item = null;
 			if (sections == null || sections.Count == 0)
 				item = Store[row];
-			if (item == null)
-			{
+			if (item == null) {
 				foreach (var section in sections)
 				{
 					if (row <= section.StartRow)
@@ -300,21 +256,61 @@ namespace Eto.CustomControls
 			return false;
 		}
 
-		public bool ExpandRow(int row)
+		public bool ExpandRow (int row)
 		{
 			var args = new TreeGridViewItemCancelEventArgs(GetItemAtRow(row));
-			treeDataStore.OnExpanding(args);
+			OnExpanding (args);
 			if (args.Cancel)
 				return false;
 			args.Item.Expanded = true;
-			treeDataStore.Refresh();
-			treeDataStore.OnExpanded(new TreeGridViewItemEventArgs(args.Item));
+			ExpandRowInternal (row);
+			OnExpanded (new TreeGridViewItemEventArgs (args.Item));
 			return true;
+		}
+
+		ITreeGridStore<ITreeGridItem> ExpandRowInternal (int row)
+		{
+			ITreeGridStore<ITreeGridItem> children = null;
+			if (sections == null || sections.Count == 0) {
+				children = (ITreeGridStore<ITreeGridItem>)Store [row];
+				var childController = new TreeController { StartRow = row, Handler = Handler, parent = this };
+				childController.InitializeItems(children);
+				Sections.Add (childController);
+			}
+			else {
+				bool addTop = true;
+				foreach (var section in sections)
+				{
+					if (row <= section.StartRow)
+					{
+						break;
+					}
+					if (row <= section.StartRow + section.Count)
+					{
+						children = section.ExpandRowInternal(row - section.StartRow - 1);
+						addTop = false;
+						break;
+					}
+					row -= section.Count;
+				}
+				if (addTop && row < Store.Count) {
+					children = (ITreeGridStore<ITreeGridItem>)Store [row];
+					var childController = new TreeController { StartRow = row, Handler = Handler, parent = this };
+					childController.InitializeItems(children);
+					Sections.Add (childController);
+				}
+			}
+			Sections.Sort ((x, y) => x.StartRow.CompareTo (y.StartRow));
+			if (children != null) {
+				ClearCache ();
+				ResetCollection ();
+			}
+			return children;
 		}
 
 		bool ChildIsSelected (ITreeGridItem item)
 		{
-			var node = handler.SelectedItem;
+			var node = Handler.SelectedItem;
 
 			while (node != null) {
 				node = node.Parent;
@@ -325,42 +321,154 @@ namespace Eto.CustomControls
 			return false;
 		}
 
-		void ResetCollection()
+		void ResetCollection ()
 		{
 			if (parent == null)
-				handler.PreResetTree ();
-			treeDataStore.Refresh(force: true);
+				Handler.PreResetTree ();
+			OnTriggerCollectionChanged (new NotifyCollectionChangedEventArgs (NotifyCollectionChangedAction.Reset));
 			if (parent == null)
-				handler.PostResetTree ();
+				Handler.PostResetTree ();
 		}
 
 		public bool CollapseRow (int row)
 		{
 			var args = new TreeGridViewItemCancelEventArgs (GetItemAtRow (row));
-			treeDataStore.OnCollapsing(args);
+			OnCollapsing (args);
 			if (args.Cancel)
 				return false;
-			var shouldSelect = !handler.AllowMultipleSelection && ChildIsSelected (args.Item);
+			var shouldSelect = !Handler.AllowMultipleSelection && ChildIsSelected (args.Item);
 			args.Item.Expanded = false;
-			treeDataStore.OnCollapsed(new TreeGridViewItemEventArgs(args.Item));
-			treeDataStore.Refresh();
+			OnCollapsed (new TreeGridViewItemEventArgs (args.Item));
+			CollapseSection (row);
+
+			ResetCollection ();
 
 			if (shouldSelect)
-				handler.SelectRow (row);
+				Handler.SelectRow (row);
 
 			return true;
+		}
+
+		void CollapseSection (int row)
+		{
+			if (sections != null && sections.Count > 0)
+			{
+				bool addTop = true;
+				foreach (var section in sections)
+				{
+					if (row <= section.StartRow)
+					{
+						break;
+					}
+					if (row <= section.StartRow + section.Count)
+					{
+						addTop = false;
+						section.CollapseSection(row - section.StartRow - 1);
+						break;
+					}
+					row -= section.Count;
+				}
+				if (addTop && row < Store.Count)
+					Sections.RemoveAll (r => r.StartRow == row);
+			}
+			ClearCache ();
 		}
 
 		public int Count
 		{
 			get
 			{
-				if (Store == null)
-					return 0;
+				if (countCache != null)
+					return countCache.Value;
 				if (sections != null)
-					return Store.Count + sections.Sum(r => r.Count);
-				return Store.Count;
+					countCache = Store.Count + sections.Sum (r => r.Count);
+				else
+					countCache = Store.Count;
+				return countCache.Value;
 			}
+		}
+
+		public int Add (object value)
+		{
+			return 0;
+		}
+
+		public void Clear ()
+		{
+		}
+
+		public bool Contains (object value)
+		{
+			return true;
+		}
+
+		int IList.IndexOf (object value)
+		{
+			return IndexOf (value as ITreeGridItem);
+		}
+
+		public void Insert (int index, object value)
+		{
+			
+		}
+
+		public bool IsFixedSize
+		{
+			get { return true; }
+		}
+
+		public bool IsReadOnly
+		{
+			get { return false; }
+		}
+
+		public void Remove (object value)
+		{
+			
+		}
+
+		public void RemoveAt (int index)
+		{
+			
+		}
+
+		object IList.this[int index]
+		{
+			get { return this[index]; }
+			set
+			{
+				
+			}
+		}
+
+		public void CopyTo (Array array, int index)
+		{
+			throw new NotImplementedException ();
+		}
+
+		public bool IsSynchronized
+		{
+			get { return false; }
+		}
+
+		public object SyncRoot
+		{
+			get { return this; }
+		}
+
+		public IEnumerator GetEnumerator ()
+		{
+			for (int i = 0; i < Count; i++) {
+				yield return this[i];
+			}
+		}
+
+		public event NotifyCollectionChangedEventHandler CollectionChanged;
+
+		protected virtual void OnTriggerCollectionChanged (NotifyCollectionChangedEventArgs args)
+		{
+			if (CollectionChanged != null)
+				CollectionChanged (this, args);
 		}
 
 		static IEnumerable<ITreeGridItem> GetParents (ITreeGridItem value)
@@ -377,7 +485,7 @@ namespace Eto.CustomControls
 			var parents = GetParents (value).Reverse ();
 
 			foreach (var item in parents) {
-				var row = treeDataStore.IndexOf(item);
+				var row = IndexOf (item);
 				if (row >= 0 && !IsExpanded(row))
 					ExpandRow (row);
 			}

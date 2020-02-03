@@ -1,10 +1,8 @@
 using System;
 using swc = System.Windows.Controls;
 using sw = System.Windows;
-using swd = System.Windows.Data;
 using swm = System.Windows.Media;
 using Eto.Forms;
-using Eto.CustomControls;
 using Eto.Wpf.CustomControls.TreeGridView;
 using Eto.Drawing;
 using System.Collections.Generic;
