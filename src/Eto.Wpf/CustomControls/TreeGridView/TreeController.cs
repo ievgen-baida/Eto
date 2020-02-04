@@ -6,29 +6,17 @@ using Eto.Forms;
 
 namespace Eto.Wpf.CustomControls.TreeGridView
 {
-	public interface ITreeHandler
-	{
-		ITreeGridItem SelectedItem { get; }
-		void SelectRow (int row);
-		bool AllowMultipleSelection { get; }
-
-		void PreResetTree ();
-		void PostResetTree ();
-	}
-
 	public class TreeController : ITreeGridStore<ITreeGridItem>
 	{
 		readonly TreeDataStore treeDataStore;
-		readonly ITreeHandler handler;
 
 		List<TreeController> sections;
 		TreeController parent;
 		ITreeGridStore<ITreeGridItem> store;
 
-		internal TreeController(TreeDataStore treeDataStore, ITreeHandler handler)
+		internal TreeController(TreeDataStore treeDataStore)
 		{
 			this.treeDataStore = treeDataStore;
-			this.handler = handler;
 		}
 
 		int StartRow { get; set; }
@@ -122,7 +110,7 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 					if (item.Expanded)
 					{
 						var children = (ITreeGridStore<ITreeGridItem>)item;
-						var section = new TreeController(treeDataStore, handler) { StartRow = row, parent = this };
+						var section = new TreeController(treeDataStore) { StartRow = row, parent = this };
 						section.InitializeItems(children);
 						Sections.Add(section);
 					}

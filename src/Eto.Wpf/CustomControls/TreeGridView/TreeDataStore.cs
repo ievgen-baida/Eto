@@ -8,6 +8,16 @@ using Eto.Forms;
 
 namespace Eto.Wpf.CustomControls.TreeGridView
 {
+	public interface ITreeHandler
+	{
+		ITreeGridItem SelectedItem { get; }
+		void SelectRow (int row);
+		bool AllowMultipleSelection { get; }
+
+		void PreResetTree ();
+		void PostResetTree ();
+	}
+
 	public class TreeDataStore : ITreeGridStore<ITreeGridItem>, IList, INotifyCollectionChanged
 	{
 		readonly ITreeHandler handler;
@@ -17,7 +27,7 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 		public TreeDataStore(ITreeHandler handler)
 		{
 			this.handler = handler;
-			controller = new TreeController(this, handler);
+			controller = new TreeController(this);
 			cache = new ObservableCollection<ITreeGridItem>();
 			cache.CollectionChanged += (s, e) => OnTriggerCollectionChanged(e);
 		}
