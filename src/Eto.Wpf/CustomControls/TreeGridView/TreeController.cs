@@ -223,7 +223,7 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 			return node;
 		}
 
-		ITreeGridItem GetItemAtRow(int row)
+		internal ITreeGridItem GetItemAtRow(int row)
 		{
 			if (Store == null) return null;
 
@@ -281,36 +281,6 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 			args.Item.Expanded = true;
 			treeDataStore.Refresh();
 			treeDataStore.OnExpanded(new TreeGridViewItemEventArgs(args.Item));
-			return true;
-		}
-
-		bool ChildIsSelected (ITreeGridItem item)
-		{
-			var node = handler.SelectedItem;
-
-			while (node != null) {
-				node = node.Parent;
-
-				if (object.ReferenceEquals (node, item))
-					return true;
-			}
-			return false;
-		}
-
-		public bool CollapseRow (int row)
-		{
-			var args = new TreeGridViewItemCancelEventArgs (GetItemAtRow (row));
-			treeDataStore.OnCollapsing(args);
-			if (args.Cancel)
-				return false;
-			var shouldSelect = !handler.AllowMultipleSelection && ChildIsSelected (args.Item);
-			args.Item.Expanded = false;
-			treeDataStore.OnCollapsed(new TreeGridViewItemEventArgs(args.Item));
-			treeDataStore.Refresh();
-
-			if (shouldSelect)
-				handler.SelectRow (row);
-
 			return true;
 		}
 

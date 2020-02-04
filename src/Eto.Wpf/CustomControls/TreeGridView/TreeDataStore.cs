@@ -265,9 +265,28 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 			return 0;
 		}
 
-		public bool CollapseRow(int row) => controller.CollapseRow(row);
+		public bool CollapseRow(int row)
+		{
+			var item = controller.GetItemAtRow(row);
+			var args = new TreeGridViewItemCancelEventArgs(item);
+			OnCollapsing(args);
+
+			if (args.Cancel)
+				return false;
+			var shouldSelect = !handler.AllowMultipleSelection && IsChildOf(args.Item);
+			args.Item.Expanded = false;
+
+			OnCollapsed(new TreeGridViewItemEventArgs(args.Item));
+			Refresh();
+
+			if (shouldSelect)
+				handler.SelectRow(row);
+
+			return true;
+		}
 
 		public bool IsExpanded(int row) => controller.IsExpanded(row);
+		static bool IsChildOf(ITreeGridItem item) => item.GetParents().Contains(item);
 
 		public bool ExpandRow(int row) => controller.ExpandRow(row);
 
