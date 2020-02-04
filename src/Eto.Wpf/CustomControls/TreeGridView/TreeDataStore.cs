@@ -20,7 +20,7 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 
 	public class TreeDataStore : ITreeGridStore<ITreeGridItem>, IList, INotifyCollectionChanged
 	{
-		readonly ITreeHandler handler;
+		private readonly ITreeHandler handler;
 		private readonly ObservableCollection<ITreeGridItem> cache;
 		private readonly TreeController controller;
 
@@ -126,23 +126,22 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 		public event EventHandler<TreeGridViewItemEventArgs> Expanded;
 		public event EventHandler<TreeGridViewItemEventArgs> Collapsed;
 
-		// TODO access modifier
-		internal void OnExpanding(TreeGridViewItemCancelEventArgs e)
+		void OnExpanding(TreeGridViewItemCancelEventArgs e)
 		{
 			Expanding?.Invoke(this, e);
 		}
-	
-		internal void OnCollapsing(TreeGridViewItemCancelEventArgs e)
+
+		void OnCollapsing(TreeGridViewItemCancelEventArgs e)
 		{
 			Collapsing?.Invoke(this, e);
 		}
 
-		internal void OnExpanded(TreeGridViewItemEventArgs e)
+		void OnExpanded(TreeGridViewItemEventArgs e)
 		{
 			Expanded?.Invoke(this, e);
 		}
 
-		internal void OnCollapsed(TreeGridViewItemEventArgs e)
+		void OnCollapsed(TreeGridViewItemEventArgs e)
 		{
 			Collapsed?.Invoke(this, e);
 		}

@@ -21,14 +21,7 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 
 		int StartRow { get; set; }
 
-		List<TreeController> Sections
-		{
-			get
-			{
-				if (sections == null) sections = new List<TreeController>();
-				return sections;
-			}
-		}
+		List<TreeController> Sections => sections ?? (sections = new List<TreeController>());
 
 		ITreeGridStore<ITreeGridItem> Store
 		{
@@ -63,6 +56,7 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 
 			treeDataStore.Refresh();
 		}
+
 		void OnChildrenCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
 		{
 			switch (e.Action)
@@ -158,7 +152,23 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 			}
 		}
 
+		#region ITreeGridStore<ITreeGridItem> implementation
+
 		public ITreeGridItem this[int row] => GetItemAtRow(row);
+
+		public int Count
+		{
+			get
+			{
+				if (Store == null)
+					return 0;
+				if (sections != null)
+					return Store.Count + sections.Sum(r => r.Count);
+				return Store.Count;
+			}
+		}
+
+		#endregion
 
 		public class TreeNode
 		{
@@ -171,22 +181,24 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 
 			public bool IsFirstNode { get { return Index == 0; } }
 
-			public bool IsLastNode { get { return Index == Count-1; } }
+			public bool IsLastNode { get { return Index == Count - 1; } }
 		}
 
-		public TreeNode GetNodeAtRow (int row)
+		public TreeNode GetNodeAtRow(int row)
 		{
-			return GetNodeAtRow (row, null, 0);
+			return GetNodeAtRow(row, null, 0);
 		}
 
-		TreeNode GetNodeAtRow (int row, TreeNode parent, int level)
+		TreeNode GetNodeAtRow(int row, TreeNode parent, int level)
 		{
 			var node = new TreeNode { RowIndex = row, Parent = parent, Count = Store.Count, Level = level };
-			if (sections == null || sections.Count == 0) {
+			if (sections == null || sections.Count == 0)
+			{
 				node.Item = Store[row];
 				node.Index = row;
 			}
-			else {
+			else
+			{
 				foreach (var section in sections)
 				{
 					if (row <= section.StartRow)
@@ -204,7 +216,8 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 					row -= section.Count;
 				}
 			}
-			if (node.Item == null && row < Store.Count) {
+			if (node.Item == null && row < Store.Count)
+			{
 				node.Item = Store[row];
 				node.Index = row;
 			}
@@ -218,7 +231,7 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 			ITreeGridItem item = null;
 			if (sections == null || sections.Count == 0)
 				item = Store[row];
-			if (item == null)
+			if (item == null && sections != null)
 			{
 				foreach (var section in sections)
 				{
@@ -238,18 +251,6 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 			if (item == null && row < Store.Count)
 				item = Store[row];
 			return item;
-		}
-
-		public int Count
-		{
-			get
-			{
-				if (Store == null)
-					return 0;
-				if (sections != null)
-					return Store.Count + sections.Sum(r => r.Count);
-				return Store.Count;
-			}
 		}
 	}
 }
