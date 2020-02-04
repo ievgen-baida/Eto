@@ -47,6 +47,26 @@ namespace Eto.Forms
 	{
 	}
 
+	public static class TreeGridItemExtensions
+	{
+		/// <summary>
+		/// Gets an enumeration of parents of the item
+		/// </summary>
+		/// <param name="item">Item to get parents of</param>
+		/// <returns>Returns an enumeration of parents of item from bottom to top</returns>
+		/// <remarks>
+		/// If you want to iterate from top to bottom, you need to call `Reverse()` on the returned value.
+		/// </remarks>
+		public static IEnumerable<ITreeGridItem> GetParents(this ITreeGridItem item)
+		{
+			ITreeGridItem parent = item.Parent;
+			while (parent != null) {
+				yield return parent;
+				parent = parent.Parent;
+			}
+		}
+	}
+
 	/// <summary>
 	/// Interface for an item in a <see cref="TreeGridView"/> that implements children
 	/// </summary>

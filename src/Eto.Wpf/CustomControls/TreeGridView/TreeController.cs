@@ -363,21 +363,12 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 			}
 		}
 
-		static IEnumerable<ITreeGridItem> GetParents (ITreeGridItem value)
+		public void ExpandToItem (ITreeGridItem item)
 		{
-			ITreeGridItem parent = value.Parent;
-			while (parent != null) {
-				yield return parent;
-				parent = parent.Parent;
-			}
-		}
+			var parents = item.GetParents().Reverse();
 
-		public void ExpandToItem (ITreeGridItem value)
-		{
-			var parents = GetParents (value).Reverse ();
-
-			foreach (var item in parents) {
-				var row = treeDataStore.IndexOf(item);
+			foreach (var parent in parents) {
+				var row = treeDataStore.IndexOf(parent);
 				if (row >= 0 && !IsExpanded(row))
 					ExpandRow (row);
 			}
