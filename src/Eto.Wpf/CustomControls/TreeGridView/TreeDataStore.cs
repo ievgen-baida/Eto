@@ -293,7 +293,21 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 			return item.Expandable && item.Expanded;
 		}
 
-		public bool ExpandRow(int row) => controller.ExpandRow(row);
+		public bool ExpandRow(int row)
+		{
+			var item = controller.GetItemAtRow(row);
+			var cancellableEvent = new TreeGridViewItemCancelEventArgs(item);
+			OnExpanding(cancellableEvent);
+
+			if (cancellableEvent.Cancel)
+				return false;
+			item.Expanded = true;
+			
+			Refresh();
+			OnExpanded(new TreeGridViewItemEventArgs(item));
+			
+			return true;
+		}
 
 		#endregion
 	}

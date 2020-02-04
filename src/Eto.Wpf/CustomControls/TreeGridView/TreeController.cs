@@ -252,18 +252,6 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 			return item;
 		}
 
-		public bool ExpandRow(int row)
-		{
-			var args = new TreeGridViewItemCancelEventArgs(GetItemAtRow(row));
-			treeDataStore.OnExpanding(args);
-			if (args.Cancel)
-				return false;
-			args.Item.Expanded = true;
-			treeDataStore.Refresh();
-			treeDataStore.OnExpanded(new TreeGridViewItemEventArgs(args.Item));
-			return true;
-		}
-
 		public int Count
 		{
 			get
