@@ -257,7 +257,13 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 			handler.PostResetTree();
 		}
 
-		public int LevelAtRow(int row) => controller.LevelAtRow(row);
+		public int LevelAtRow(int row)
+		{
+			if (row < cache.Count && cache[row] != null)
+				return cache[row].GetParents().Count();
+
+			return 0;
+		}
 
 		public bool CollapseRow(int row) => controller.CollapseRow(row);
 

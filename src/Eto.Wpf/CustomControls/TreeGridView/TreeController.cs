@@ -170,29 +170,6 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 			}
 		}
 
-		public int LevelAtRow(int row)
-		{
-			if (sections == null || sections.Count == 0)
-				return 0;
-			foreach (var section in sections)
-			{
-				if (row <= section.StartRow)
-				{
-					return 0;
-				}
-				else
-				{
-					var count = section.Count;
-					if (row <= section.StartRow + count)
-					{
-						return section.LevelAtRow(row - section.StartRow - 1) + 1;
-					}
-					row -= count;
-				}
-			}
-			return 0;
-		}
-
 		public ITreeGridItem this[int row] => GetItemAtRow(row);
 
 		public class TreeNode
