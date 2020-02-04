@@ -267,16 +267,16 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 
 		public bool CollapseRow(int row)
 		{
-			var item = controller.GetItemAtRow(row);
+			var item = (TreeGridItem) controller.GetItemAtRow(row);
 			var args = new TreeGridViewItemCancelEventArgs(item);
 			OnCollapsing(args);
 
 			if (args.Cancel)
 				return false;
-			var shouldSelect = !handler.AllowMultipleSelection && IsChildOf(args.Item);
-			args.Item.Expanded = false;
+			var shouldSelect = !handler.AllowMultipleSelection && item.IsChildOf(handler.SelectedItem);
+			item.Expanded = false;
 
-			OnCollapsed(new TreeGridViewItemEventArgs(args.Item));
+			OnCollapsed(new TreeGridViewItemEventArgs(item));
 			Refresh();
 
 			if (shouldSelect)
@@ -284,8 +284,6 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 
 			return true;
 		}
-
-		static bool IsChildOf(ITreeGridItem item) => item.GetParents().Contains(item);
 
 		public bool IsExpanded(int row)
 		{

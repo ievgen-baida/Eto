@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Linq;
 
 namespace Eto.Forms
 {
@@ -178,6 +179,13 @@ namespace Eto.Forms
 		{
 			get { return (children != null) ? children.Count : 0; }
 		}
+		
+		/// <summary>
+		/// Returns if a given item is a parent of this
+		/// </summary>
+		/// <param name="item">Potential parent of the current item</param>
+		/// <returns>Boolean representing whether item is parent of this</returns>
+		public bool IsChildOf(ITreeGridItem item) => this.GetParents().Contains(item);
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Eto.Forms.TreeGridItem"/> class.
