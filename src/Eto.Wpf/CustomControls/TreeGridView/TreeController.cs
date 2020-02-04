@@ -252,26 +252,6 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 			return item;
 		}
 
-		public bool IsExpanded (int row)
-		{
-			if (sections == null) return false;
-			foreach (var section in sections)
-			{
-				if (row < section.StartRow)
-					return false;
-				if (row == section.StartRow)
-				{
-					return true;
-				}
-				if (row <= section.StartRow + section.Count)
-				{
-					return section.IsExpanded(row - section.StartRow - 1);
-				}
-				row -= section.Count;
-			}
-			return false;
-		}
-
 		public bool ExpandRow(int row)
 		{
 			var args = new TreeGridViewItemCancelEventArgs(GetItemAtRow(row));

@@ -285,8 +285,13 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 			return true;
 		}
 
-		public bool IsExpanded(int row) => controller.IsExpanded(row);
 		static bool IsChildOf(ITreeGridItem item) => item.GetParents().Contains(item);
+
+		public bool IsExpanded(int row)
+		{
+			var item = this[row];
+			return item.Expandable && item.Expanded;
+		}
 
 		public bool ExpandRow(int row) => controller.ExpandRow(row);
 
