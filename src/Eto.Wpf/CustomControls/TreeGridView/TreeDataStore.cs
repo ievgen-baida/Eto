@@ -10,11 +10,13 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 {
 	public class TreeDataStore : ITreeGridStore<ITreeGridItem>, IList, INotifyCollectionChanged
 	{
+		readonly ITreeHandler handler;
 		private readonly ObservableCollection<ITreeGridItem> cache;
 		private readonly TreeController controller;
 
 		public TreeDataStore(ITreeHandler handler)
 		{
+			this.handler = handler;
 			controller = new TreeController(this, handler);
 			cache = new ObservableCollection<ITreeGridItem>();
 			cache.CollectionChanged += (s, e) => OnTriggerCollectionChanged(e);
@@ -248,7 +250,12 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 			}
 		}
 
-		public void ReloadData() => controller.ReloadData();
+		public void ReloadData()
+		{
+			handler.PreResetTree();
+			Refresh(force: true);
+			handler.PostResetTree();
+		}
 
 		public int LevelAtRow(int row) => controller.LevelAtRow(row);
 

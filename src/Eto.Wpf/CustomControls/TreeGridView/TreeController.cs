@@ -69,7 +69,7 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 				case NotifyCollectionChangedAction.Move:
 					break;
 				case NotifyCollectionChangedAction.Reset:
-					ResetCollection();
+					treeDataStore.Refresh(force: true);
 					return;
 			}
 
@@ -168,11 +168,6 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 				foreach (var item in storeCollection.Cast<TreeGridItem>())
 					item.Children.CollectionChanged += OnChildrenCollectionChanged;
 			}
-		}
-
-		public void ReloadData()
-		{
-			ResetCollection();
 		}
 
 		public int LevelAtRow(int row)
@@ -323,15 +318,6 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 					return true;
 			}
 			return false;
-		}
-
-		void ResetCollection()
-		{
-			if (parent == null)
-				handler.PreResetTree ();
-			treeDataStore.Refresh(force: true);
-			if (parent == null)
-				handler.PostResetTree ();
 		}
 
 		public bool CollapseRow (int row)
