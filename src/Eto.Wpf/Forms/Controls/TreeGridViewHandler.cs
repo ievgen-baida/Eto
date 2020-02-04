@@ -111,7 +111,7 @@ namespace Eto.Wpf.Forms.Controls
 			{
 				if (dataStore != null && value != null)
 				{
-					dataStore.ExpandToItem(value);
+					dataStore.ExpandParentsOf(value);
 					Control.SelectedItem = value;
 					Control.ScrollIntoView(value);
 				}

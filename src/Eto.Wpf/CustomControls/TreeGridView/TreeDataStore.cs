@@ -237,7 +237,16 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 
 		public TreeController.TreeNode GetNodeAtRow(int row) => controller.GetNodeAtRow(row);
 
-		public void ExpandToItem(ITreeGridItem value) => controller.ExpandToItem(value);
+		public void ExpandParentsOf(ITreeGridItem item)
+		{
+			var parents = item.GetParents().Reverse();
+
+			foreach (var parent in parents) {
+				var row = IndexOf(parent);
+				if (row >= 0 && !parent.Expanded)
+					ExpandRow (row);
+			}
+		}
 
 		public void ReloadData() => controller.ReloadData();
 

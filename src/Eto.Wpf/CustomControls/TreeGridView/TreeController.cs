@@ -362,16 +362,5 @@ namespace Eto.Wpf.CustomControls.TreeGridView
 				return Store.Count;
 			}
 		}
-
-		public void ExpandToItem (ITreeGridItem item)
-		{
-			var parents = item.GetParents().Reverse();
-
-			foreach (var parent in parents) {
-				var row = treeDataStore.IndexOf(parent);
-				if (row >= 0 && !IsExpanded(row))
-					ExpandRow (row);
-			}
-		}
 	}
 }
